@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Perdu</string>
+    <string name="settingButton_Description">setting</string>
+    <string name="modeItem1_name">표정 인식</string>
+    <string name="modeItem2_name">일반</string>
+    <string name="modeItem3_name">자세 인식</string>
+    <string name="galleryButton_Description">gallery</string>
+    <string name="captureButton_Description">capture</string>
+    <string name="changeFacingButton_Description">changeFacing</string>
+    <string name="selectedMode_Shape">selectedMode</string>
+    <string name="focusOval">focusOval</string>
+</resources>
