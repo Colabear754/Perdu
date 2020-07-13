@@ -22,19 +22,7 @@ public class ModePager extends ViewPager {
     public ModePager(Context context, AttributeSet attr) {
         super(context, attr);
     }
-/*
-    @Override
-    public boolean onInterceptTouchEvent(MotionEvent event) {
-        final int action = event.getAction() & MotionEventCompat.ACTION_MASK;
-        switch (action) {
-            case MotionEvent.ACTION_DOWN:
-                return true;
-            case MotionEvent.ACTION_MOVE:
-                return event.getPointerCount() >= 2;
-        }
-        return super.onInterceptTouchEvent(event);
-    }
-*/
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         // 터치로 초점을 맞추고 멀티터치로 줌을 구현하기 위한 터치이벤트
