@@ -29,17 +29,18 @@ public class ModePager extends ViewPager {
         Handler handler = new Handler();
         switch (event.getAction() & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_DOWN:   // 한손가락 터치 시 포커스 맞춤
-                if (event.getPointerCount() == 1)
-                MainActivity.focusOval.setX(event.getX());
-                MainActivity.focusOval.setY(event.getY());
-                MainActivity.focusOval.setVisibility(View.VISIBLE);
-                MainActivity.cameraView.focus();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        MainActivity.focusOval.setVisibility(View.GONE);
-                    }
-                }, 2000);
+                if (event.getPointerCount() == 1) {
+                    MainActivity.focusOval.setX(event.getX());
+                    MainActivity.focusOval.setY(event.getY());
+                    MainActivity.focusOval.setVisibility(View.VISIBLE);
+                    MainActivity.cameraView.focus();
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            MainActivity.focusOval.setVisibility(View.GONE);
+                        }
+                    }, 2000);
+                }
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (event.getPointerCount() == 2) {
