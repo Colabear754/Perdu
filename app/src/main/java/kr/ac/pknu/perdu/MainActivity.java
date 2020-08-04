@@ -52,9 +52,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     static SeekBar zoomSeekBar;    // 줌을 나타내는 시크바
     TextView zoomTextView;  // 줌 배율을 나타내는 텍스트뷰
     static LinearLayout zoomLayout;    // 줌 관련 내용을 보여주기 위한 레이아웃
-    // 줌 변수들
-    // 카메라 전환 변수
-    static int cameraFacing;
+    int cameraFacing;    // 카메라 전환 변수
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
