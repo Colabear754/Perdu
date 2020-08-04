@@ -1,4 +1,4 @@
-package kr.ac.pknu.perdu;
+package kr.ac.pknu.perdu.adapter;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -7,12 +7,14 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
-public class AspectRatioSpinnerAdapter extends BaseAdapter {
+import kr.ac.pknu.perdu.R;
+
+public class FlashSpinnerAdapter extends BaseAdapter {
     Context context;
     LayoutInflater inflater;
     int[] spinnerImages;
 
-    public AspectRatioSpinnerAdapter(Context context, int[] images) {
+    public FlashSpinnerAdapter(Context context, int[] images) {
         this.context = context;
         this.spinnerImages = images;
         inflater = (LayoutInflater.from(context));
@@ -36,7 +38,7 @@ public class AspectRatioSpinnerAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         convertView = inflater.inflate(R.layout.spinner_layout, null);
-        ImageView icon = convertView.findViewById(R.id.aspectratioSpinnerImage);
+        ImageView icon = convertView.findViewById(R.id.flashSpinnerImage);
         icon.setImageResource(spinnerImages[position]);
         return icon;
     }

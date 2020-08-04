@@ -1,4 +1,4 @@
-package kr.ac.pknu.perdu;
+package kr.ac.pknu.perdu.adapter;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;

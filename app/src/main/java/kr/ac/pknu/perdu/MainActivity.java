@@ -28,6 +28,10 @@ import android.widget.Toast;
 import com.pedro.library.AutoPermissions;
 import com.pedro.library.AutoPermissionsListener;
 
+import kr.ac.pknu.perdu.adapter.AspectRatioSpinnerAdapter;
+import kr.ac.pknu.perdu.adapter.FlashSpinnerAdapter;
+import kr.ac.pknu.perdu.adapter.ModePagerAdapter;
+
 public class MainActivity extends AppCompatActivity implements AutoPermissionsListener {
     static CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
     SurfaceView surfaceView;    // 미리보기를 표시하기 위한 서피스뷰
