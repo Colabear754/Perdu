@@ -211,6 +211,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         }
         Camera.CameraInfo info = new Camera.CameraInfo();
         Camera.getCameraInfo(cameraID, info);
+
         cameraInfo = info;
         displayOrientation = appCompatActivity.getWindowManager().getDefaultDisplay().getRotation();
         int orientation = calculateOrientation(cameraInfo, displayOrientation);
