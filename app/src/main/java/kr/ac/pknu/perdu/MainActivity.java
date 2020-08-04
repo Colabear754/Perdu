@@ -31,6 +31,9 @@ import com.pedro.library.AutoPermissionsListener;
 import kr.ac.pknu.perdu.adapter.AspectRatioSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.FlashSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.ModePagerAdapter;
+import kr.ac.pknu.perdu.mode.ModeItem1;
+import kr.ac.pknu.perdu.mode.ModeItem2;
+import kr.ac.pknu.perdu.mode.ModeItem3;
 
 public class MainActivity extends AppCompatActivity implements AutoPermissionsListener {
     static CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
@@ -47,7 +50,6 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     ConstraintLayout menuLayout;    // 상단 메뉴 레이아웃
     static ImageView focusOval;    // 수동 초점 맞출 때 나오는 원
     static SeekBar zoomSeekBar;    // 줌을 나타내는 시크바
-    private int maxZoom = 0;
     TextView zoomTextView;  // 줌 배율을 나타내는 텍스트뷰
     static LinearLayout zoomLayout;    // 줌 관련 내용을 보여주기 위한 레이아웃
     // 줌 변수들

@@ -1,4 +1,4 @@
-package kr.ac.pknu.perdu;
+package kr.ac.pknu.perdu.mode;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -8,6 +8,8 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
+import kr.ac.pknu.perdu.R;
 
 public class ModeItem2 extends Fragment {
     @Nullable

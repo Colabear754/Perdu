@@ -1,9 +1,11 @@
-package kr.ac.pknu.perdu;
+package kr.ac.pknu.perdu.splash;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+
+import kr.ac.pknu.perdu.MainActivity;
 
 public class Splash extends AppCompatActivity {
 
