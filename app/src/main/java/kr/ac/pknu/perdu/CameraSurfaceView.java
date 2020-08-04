@@ -94,7 +94,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         }
     }
 
-    public int calculateOrientation(Camera.CameraInfo info, int rotation) {
+    private int calculateOrientation(Camera.CameraInfo info, int rotation) {
         // 프리뷰와 사진을 회전시킬 각도를 계산하여 반환
         int degrees = 0;
         switch (rotation) {
