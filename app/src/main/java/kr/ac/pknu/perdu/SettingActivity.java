@@ -38,7 +38,7 @@ public class SettingActivity extends AppCompatActivity {
 
             int ARGB = bitmap.getPixel(x, y);
 
-            if (Color.alpha(ARGB) == 0)     // 터치한 공간의 알파값이 0이면 액티비티를 종료
+            if (Color.alpha(ARGB) != 255)     // 터치한 공간의 알파값이 0이면 액티비티를 종료
                 finish();
 
             return true;
