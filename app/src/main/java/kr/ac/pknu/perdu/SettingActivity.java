@@ -46,8 +46,4 @@ public class SettingActivity extends AppCompatActivity {
         }
         return false;
     }
-
-    public void onBackButton(View v) {
-        finish();
-    }
 }
