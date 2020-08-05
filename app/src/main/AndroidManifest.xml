@@ -26,9 +26,6 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".SettingActivity"
-            android:theme="@style/SettingTheme" />
-        <activity
             android:name=".splash.Splash"
             android:screenOrientation="portrait"
             android:theme="@style/SplashTheme">
@@ -48,6 +45,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+        android:name=".SettingActivity"
+        android:theme="@style/SettingTheme" />
     </application>
 
 </manifest>
