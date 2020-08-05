@@ -54,6 +54,8 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     static LinearLayout zoomLayout;    // 줌 관련 내용을 보여주기 위한 레이아웃
     int cameraFacing;    // 카메라 전환 변수
 
+    public static final int setting = 1001;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -280,5 +282,11 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
         v.startAnimation(anim);
         cameraFacing = (cameraFacing == Camera.CameraInfo.CAMERA_FACING_BACK) ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK;   // 현재 카메라의 상태에 따라 전면 또는 후면으로 전환
         cameraView.changeCamera(cameraFacing);
+    }
+
+    public void onSettingButton(View v) {
+        // 설정 버튼 터치 메소드
+        Intent intent = new Intent(getApplicationContext(), SettingActivity.class);
+        startActivityForResult(intent, setting);
     }
 }

@@ -44,6 +44,7 @@
             android:layout_height="wrap_content"
             android:background="@drawable/button_background"
             android:contentDescription="@string/settingButton_Description"
+            android:onClick="onSettingButton"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/aspectratioSpinner"

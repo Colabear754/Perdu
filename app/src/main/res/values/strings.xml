@@ -9,4 +9,6 @@
     <string name="changeFacingButton_Description">changeFacing</string>
     <string name="selectedMode_Shape">selectedMode</string>
     <string name="focusOval">focusOval</string>
+    <string name="emotionButton_Description">emotion</string>
+    <string name="poseButton_Description">pose</string>
 </resources>
