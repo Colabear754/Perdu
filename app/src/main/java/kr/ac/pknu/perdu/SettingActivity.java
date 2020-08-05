@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Display;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.WindowManager;
 
 public class SettingActivity extends AppCompatActivity {
@@ -44,5 +45,9 @@ public class SettingActivity extends AppCompatActivity {
             return true;
         }
         return false;
+    }
+
+    public void onBackButton(View v) {
+        finish();
     }
 }

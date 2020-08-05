@@ -11,4 +11,5 @@
     <string name="focusOval">focusOval</string>
     <string name="emotionButton_Description">emotion</string>
     <string name="poseButton_Description">pose</string>
+    <string name="backButton_Description">back</string>
 </resources>
