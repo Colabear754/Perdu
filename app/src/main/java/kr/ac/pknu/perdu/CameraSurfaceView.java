@@ -58,40 +58,12 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         // surfaceCreated에서 오픈한 카메라를 이용해 surfaceView에 출력
-        Camera.CameraInfo info = new Camera.CameraInfo();
-        Camera.getCameraInfo(mCameraID, info);
-
-        cameraInfo = info;
-        displayOrientation = appCompatActivity.getWindowManager().getDefaultDisplay().getRotation();
-        int orientation = calculateOrientation(cameraInfo, displayOrientation);
-        camera.setDisplayOrientation(orientation);
-        // 자동 초점 기능
-        Camera.Parameters parameters = camera.getParameters();
-        List<String> focusModes = parameters.getSupportedFocusModes();
-        if (focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO))
-            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-        camera.setParameters(parameters);
-
-        try {
-            camera.setPreviewDisplay(surfaceHolder);
-            camera.startPreview();
-            Log.d(TAG, "카메라 미리보기 시작.");
-            isPreview = true;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        startPreview(mCameraID);
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        if (camera != null) {
-            if (isPreview)
-                camera.stopPreview();
-            camera.setPreviewCallback(null);
-            camera.release();
-            camera = null;
-            isPreview = false;
-        }
+        finishPreview();
     }
 
     private int calculateOrientation(Camera.CameraInfo info, int rotation) {
@@ -131,6 +103,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
     Camera.PictureCallback pngCallback = new Camera.PictureCallback() {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
+            // 촬영한 사진을 비트맵이미지로 만들어 저장
             int orientation = calculateOrientation(cameraInfo, displayOrientation);
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
@@ -195,43 +168,15 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
     public void changeCamera(int cameraID) {
         // 전/후면 카메라를 전환하는 메소드
         // 기존 카메라 프리뷰를 종료하고 카메라를 반환
-        if (camera != null) {
-            if (isPreview)
-                camera.stopPreview();
-            camera.setPreviewCallback(null);
-            camera.release();
-            camera = null;
-            isPreview = false;
-        }
+        finishPreview();
         // 전환된 카메라를 새로 열고 프리뷰 시작
         try {
             camera = Camera.open(cameraID);
         } catch (Exception e) {
             Log.e(TAG, "카메라" + cameraID + "사용 불가." + e.getMessage());
         }
-        Camera.CameraInfo info = new Camera.CameraInfo();
-        Camera.getCameraInfo(cameraID, info);
 
-        cameraInfo = info;
-        displayOrientation = appCompatActivity.getWindowManager().getDefaultDisplay().getRotation();
-        int orientation = calculateOrientation(cameraInfo, displayOrientation);
-        camera.setDisplayOrientation(orientation);
-        // 자동 초점 기능
-        Camera.Parameters parameters = camera.getParameters();
-        List<String> focusModes = parameters.getSupportedFocusModes();
-        if (focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO))
-            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-        camera.setParameters(parameters);
-
-        surfaceHolder.addCallback(this);
-        try {
-            camera.setPreviewDisplay(surfaceHolder);
-            camera.startPreview();
-            Log.d(TAG, (cameraID == 0 ? "후면 " : "전면 ") + "카메라 미리보기 시작.");
-            isPreview = true;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        startPreview(cameraID);
     }
 
     public void flashControl(String flashMode) {
@@ -256,5 +201,43 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         Camera.Parameters parameters = camera.getParameters();
         parameters.setZoom(zoom);
         camera.setParameters(parameters);
+    }
+
+    private void startPreview(int cameraID) {
+        // 카메라 ID를 매개변수로 받아 프리뷰를 생성
+        Camera.CameraInfo info = new Camera.CameraInfo();
+        Camera.getCameraInfo(cameraID, info);
+
+        cameraInfo = info;
+        displayOrientation = appCompatActivity.getWindowManager().getDefaultDisplay().getRotation();
+        int orientation = calculateOrientation(cameraInfo, displayOrientation);
+        camera.setDisplayOrientation(orientation);
+        // 자동 초점
+        Camera.Parameters parameters = camera.getParameters();
+        List<String> focusModes = parameters.getSupportedFocusModes();
+        if (focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO))
+            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+        camera.setParameters(parameters);
+
+        try {
+            camera.setPreviewDisplay(surfaceHolder);
+            camera.startPreview();
+            Log.d(TAG, (cameraID == 0 ? "후면 " : "전면 ") + "카메라 미리보기 시작.");
+            isPreview = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void finishPreview() {
+        // 프리뷰를 종료하고 카메라를 반환하는 메소드
+        if (camera != null) {
+            if (isPreview)
+                camera.stopPreview();
+            camera.setPreviewCallback(null);
+            camera.release();
+            camera = null;
+            isPreview = false;
+        }
     }
 }
