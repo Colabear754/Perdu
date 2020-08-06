@@ -1,12 +1,14 @@
 package kr.ac.pknu.perdu;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.viewpager.widget.ViewPager;
 
 import android.animation.ObjectAnimator;
 import android.content.Intent;
+import android.graphics.Color;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
@@ -45,6 +47,9 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     TextView emotion;   // 표정 모드 텍스트뷰
     TextView normal;    // 일반 모드 텍스트뷰
     TextView pose;  // 자세 모드 텍스트뷰
+    final ModeItem1 modeItem1 = new ModeItem1();
+    final ModeItem2 modeItem2 = new ModeItem2();
+    final ModeItem3 modeItem3 = new ModeItem3();
     LinearLayout modeLayout;    // 모드 변경 레이아웃
     ImageView selectedMode; // 선택된 모드를 표시
     ConstraintLayout menuLayout;    // 상단 메뉴 레이아웃
@@ -55,6 +60,9 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     int cameraFacing;    // 카메라 전환 변수
 
     public static final int setting = 1001;
+    public static final int emotionSelect = 1002;
+    public static final int poseSelect = 1003;
+    private int itemID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,9 +110,6 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
         pager = findViewById(R.id.modePager);
         pager.setOffscreenPageLimit(3);
         ModePagerAdapter adapter = new ModePagerAdapter(getSupportFragmentManager());
-        final ModeItem1 modeItem1 = new ModeItem1();
-        final ModeItem2 modeItem2 = new ModeItem2();
-        final ModeItem3 modeItem3 = new ModeItem3();
         adapter.addItem(modeItem1);
         adapter.addItem(modeItem2);
         adapter.addItem(modeItem3);
@@ -156,6 +161,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                 // 모드가 변경되면 모드를 나타내는 텍스트뷰 위치를 이동하는 메소드
                 ScaleAnimation increase, decrease;
                 ObjectAnimator trans_anim;
+                Handler handler = new Handler();
                 float scale = (float) emotion.getWidth() / normal.getWidth();
                 float trans = emotion.getWidth() - (float) normal.getWidth() / 3;
                 switch (position) {
@@ -169,6 +175,12 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                         trans_anim = ObjectAnimator.ofFloat(modeLayout, "translationX", trans);
                         trans_anim.setDuration(200);
                         trans_anim.start();
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                popupSelectItem(emotionSelect);
+                            }
+                        }, 500);
                         break;
                     case 1:
                         decrease = new ScaleAnimation(scale, 1, 1, 1, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
@@ -188,6 +200,12 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                         trans_anim = ObjectAnimator.ofFloat(modeLayout, "translationX", -trans);
                         trans_anim.setDuration(200);
                         trans_anim.start();
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                popupSelectItem(poseSelect);
+                            }
+                        }, 500);
                         break;
                     default:
                         break;
@@ -262,6 +280,11 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
         }, 1000);
     }
 
+    private void popupSelectItem(int requestCode) {
+        Intent intent = new Intent(getApplicationContext(), SettingActivity.class);
+        startActivityForResult(intent, requestCode);
+    }
+
     public void onCaptureButton(View v) {
         // 촬영 버튼 터치 메소드
         cameraView.capture();
@@ -286,7 +309,26 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
 
     public void onSettingButton(View v) {
         // 설정 버튼 터치 메소드
-        Intent intent = new Intent(getApplicationContext(), SettingActivity.class);
-        startActivityForResult(intent, setting);
+        popupSelectItem(setting);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        // 설정 버튼에서 선택한 아이템의 코드를 받아옴
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode != RESULT_CANCELED) {
+            itemID = resultCode;
+        }
+
+        if (requestCode == emotionSelect) {
+            if (resultCode == RESULT_CANCELED)
+                modeItem1.setTextView("표정이 선택되지 않았습니다.", 0xFF0000);
+        }
+
+        else if (requestCode == poseSelect) {
+            if (resultCode == RESULT_CANCELED)
+                modeItem3.setTextView("자세가 선택되지 않았습니다.", 0xFF0000);
+        }
     }
 }

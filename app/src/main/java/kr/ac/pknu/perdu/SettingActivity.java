@@ -13,7 +13,7 @@ import android.view.WindowManager;
 
 public class SettingActivity extends AppCompatActivity {
     private int screenWidth, screenHeight;
-    private int emotionCode, poseCode;
+    private int emotionID, poseID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,11 +39,20 @@ public class SettingActivity extends AppCompatActivity {
 
             int ARGB = bitmap.getPixel(x, y);
 
-            if (Color.alpha(ARGB) != 255)     // 터치한 공간의 알파값이 255가 아니면 액티비티를 종료
+            if (Color.alpha(ARGB) != 255) {     // 터치한 공간의 알파값이 255가 아니면 액티비티를 종료
+                setResult(RESULT_CANCELED);
                 finish();
-
+            }
             return true;
         }
         return false;
+    }
+
+    public void onEmotionButton(View v) {
+
+    }
+
+    public void onPoseButton(View v) {
+
     }
 }

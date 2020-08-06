@@ -22,9 +22,8 @@ public class ModeItem3 extends Fragment {
         return view;
     }
 
-    public void setTextView(String str, int backColor, int textColor) {
+    public void setTextView(String str, int textColor) {
         modeItem3.setText(str);
-        modeItem3.setBackgroundColor(backColor);
         modeItem3.setTextColor(textColor);
     }
 }
