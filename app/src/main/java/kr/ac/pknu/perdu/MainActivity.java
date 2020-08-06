@@ -316,7 +316,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        // 설정 버튼에서 선택한 아이템의 코드를 받아옴
+        // 설정 버튼에서 선택한 아이템의 코드를 받아와 그에 따른 결과 수행
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode != RESULT_CANCELED) {
