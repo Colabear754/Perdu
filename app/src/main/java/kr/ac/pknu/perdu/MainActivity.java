@@ -175,6 +175,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                         trans_anim = ObjectAnimator.ofFloat(modeLayout, "translationX", trans);
                         trans_anim.setDuration(200);
                         trans_anim.start();
+                        modeItem1.setTextView("표정 모드", 0xFFEE0000);
                         handler.postDelayed(new Runnable() {
                             @Override
                             public void run() {
@@ -200,6 +201,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                         trans_anim = ObjectAnimator.ofFloat(modeLayout, "translationX", -trans);
                         trans_anim.setDuration(200);
                         trans_anim.start();
+                        modeItem1.setTextView("자세 모드", 0xFFEE0000);
                         handler.postDelayed(new Runnable() {
                             @Override
                             public void run() {
@@ -321,14 +323,14 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
             itemID = resultCode;
         }
 
-        if (requestCode == emotionSelect) {
+        if (requestCode == emotionSelect) {     // 표정 모드에서 표정을 선택하지 않으면 표정 모드 화면의 텍스트뷰를 변경
             if (resultCode == RESULT_CANCELED)
-                modeItem1.setTextView("표정이 선택되지 않았습니다.", 0xFF0000);
+                modeItem1.setTextView("표정이 선택되지 않았습니다.", 0xFFEE0000);
         }
 
-        else if (requestCode == poseSelect) {
+        else if (requestCode == poseSelect) {       // 자세 모드에서 자세를 선택하지 않으면 표정 모드 화면의 텍스트뷰를 변경
             if (resultCode == RESULT_CANCELED)
-                modeItem3.setTextView("자세가 선택되지 않았습니다.", 0xFF0000);
+                modeItem3.setTextView("자세가 선택되지 않았습니다.", 0xFFEE0000);
         }
     }
 }
