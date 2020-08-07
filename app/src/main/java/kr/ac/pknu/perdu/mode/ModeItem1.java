@@ -12,7 +12,7 @@ import androidx.fragment.app.Fragment;
 
 import kr.ac.pknu.perdu.R;
 
-public class ModeItem1 extends Fragment {
+public class ModeItem1 extends Fragment implements ModeInterface {
     TextView modeItem1;
     @Nullable
     @Override
@@ -25,5 +25,12 @@ public class ModeItem1 extends Fragment {
     public void setTextView(String str, int textColor) {
         modeItem1.setText(str);
         modeItem1.setTextColor(textColor);
+    }
+
+    public void setTextVisible(boolean visible) {
+        if (visible)
+            modeItem1.setVisibility(View.VISIBLE);
+        else
+            modeItem1.setVisibility(View.GONE);
     }
 }
