@@ -15,5 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
-        android:text="리스트 아이템" />
+        android:text="리스트 아이템"
+        android:textColor="#FFFFFFFF"
+        android:textSize="24sp" />
 </LinearLayout>

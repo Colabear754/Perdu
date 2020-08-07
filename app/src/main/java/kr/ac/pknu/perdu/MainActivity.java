@@ -33,6 +33,7 @@ import com.pedro.library.AutoPermissionsListener;
 import kr.ac.pknu.perdu.adapter.AspectRatioSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.FlashSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.ModePagerAdapter;
+import kr.ac.pknu.perdu.itemlist.ListItem;
 import kr.ac.pknu.perdu.mode.ModeItem1;
 import kr.ac.pknu.perdu.mode.ModeItem2;
 import kr.ac.pknu.perdu.mode.ModeItem3;
@@ -62,6 +63,8 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     public static final int setting = 1001;
     public static final int emotionSelect = 1002;
     public static final int poseSelect = 1003;
+    private static final int EMOTION = 100001;
+    private static final int POSE = 200001;
     private int itemID;
 
     @Override
@@ -316,11 +319,23 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        // 설정 버튼에서 선택한 아이템의 코드를 받아와 그에 따른 결과 수행
+        // 설정 버튼에서 선택한 아이템의 객체를 받아와 그에 따른 결과 수행
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (resultCode != RESULT_CANCELED) {
-            itemID = resultCode;
+        if (resultCode == RESULT_OK) {
+            ListItem item = getIntent().getParcelableExtra("item");
+            if (item != null) {
+                switch (item.getMode()) {
+                    case EMOTION:
+                        Toast.makeText(getApplicationContext(), "선택된 표정 : " + item.getItemName(), Toast.LENGTH_SHORT).show();
+                        pager.setCurrentItem(0);
+                        break;
+                    case POSE:
+                        Toast.makeText(getApplicationContext(), "선택된 자세 : " + item.getItemName(), Toast.LENGTH_SHORT).show();
+                        pager.setCurrentItem(2);
+                        break;
+                }
+            }
         }
 
         if (requestCode == emotionSelect) {     // 표정 모드에서 표정을 선택하지 않으면 표정 모드 화면의 텍스트뷰를 변경

@@ -3,6 +3,7 @@ package kr.ac.pknu.perdu;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -25,9 +26,9 @@ public class SettingActivity extends AppCompatActivity {
     private int emotionID, poseID;
     GridView itemList;
     ItemAdapter emotionAdapter, poseAdapter;
-    private int selectedMode = 1;
-    private final int EMOTION = 1;
-    private final int POSE = 2;
+    private int selectedMode = 100001;
+    private static final int EMOTION = 100001;
+    private static final int POSE = 200001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,14 +44,14 @@ public class SettingActivity extends AppCompatActivity {
         poseAdapter = new ItemAdapter();
 
         // 샘플 코드
-        emotionAdapter.addItem(new ListItem("표정1", 10001, R.drawable.default_icon));
-        emotionAdapter.addItem(new ListItem("표정2", 10002, R.drawable.default_icon));
-        emotionAdapter.addItem(new ListItem("표정3", 10003, R.drawable.default_icon));
-        emotionAdapter.addItem(new ListItem("표정4", 10004, R.drawable.default_icon));
-        emotionAdapter.addItem(new ListItem("표정5", 10005, R.drawable.default_icon));
-        emotionAdapter.addItem(new ListItem("표정6", 10006, R.drawable.default_icon));
-        emotionAdapter.addItem(new ListItem("표정7", 10007, R.drawable.default_icon));
-        emotionAdapter.addItem(new ListItem("표정8", 10008, R.drawable.default_icon));
+        emotionAdapter.addItem(new ListItem("표정1", 101, R.drawable.default_icon, EMOTION));
+        emotionAdapter.addItem(new ListItem("표정2", 102, R.drawable.default_icon, EMOTION));
+        emotionAdapter.addItem(new ListItem("표정3", 103, R.drawable.default_icon, EMOTION));
+        emotionAdapter.addItem(new ListItem("표정4", 104, R.drawable.default_icon, EMOTION));
+        emotionAdapter.addItem(new ListItem("표정5", 105, R.drawable.default_icon, EMOTION));
+        emotionAdapter.addItem(new ListItem("표정6", 106, R.drawable.default_icon, EMOTION));
+        emotionAdapter.addItem(new ListItem("표정7", 107, R.drawable.default_icon, EMOTION));
+        emotionAdapter.addItem(new ListItem("표정8", 108, R.drawable.default_icon, EMOTION));
 
         switch (selectedMode) {
             // selectedMode 값에 따라 아이템리스트 어댑터를 변경
@@ -65,19 +66,18 @@ public class SettingActivity extends AppCompatActivity {
         itemList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                // 아이템을 선택하면 해당 아이템의 ID를 변수에 저장하고 메인 액티비티에 결과를 전송한 후 설정 액티비티 종료
+                Intent intent = new Intent();
+                // 아이템을 선택하면 해당 아이템 객체를 메인 액티비티로 전달하고 설정 액티비티 종료
                 switch (selectedMode) {
-                    // selectedMode 값에 따라 표정 또는 자세의 ID를 메인 액티비티에 전송
+                    // selectedMode 값에 따라 표정 또는 자세의 객체를 메인 액티비티에 전송
                     case EMOTION:
-                        emotionID = emotionAdapter.getItem(position).getItemID();
-                        setResult(emotionID);
+                        intent.putExtra("item", emotionAdapter.getItem(position));
                         break;
                     case POSE:
-                        poseID = poseAdapter.getItem(position).getItemID();
-                        setResult(poseID);
+                        intent.putExtra("item", poseAdapter.getItem(position));
                         break;
                 }
-
+                setResult(RESULT_OK);
                 finish();
             }
         });
@@ -144,5 +144,4 @@ public class SettingActivity extends AppCompatActivity {
             return itemViewer;
         }
     }
-
 }
