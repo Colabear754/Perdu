@@ -77,7 +77,7 @@ public class SettingActivity extends AppCompatActivity {
                         intent.putExtra("item", poseAdapter.getItem(position));
                         break;
                 }
-                setResult(RESULT_OK);
+                setResult(RESULT_OK, intent);
                 finish();
             }
         });
