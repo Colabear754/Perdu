@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     TextView zoomTextView;  // 줌 배율을 나타내는 텍스트뷰
     static LinearLayout zoomLayout;    // 줌 관련 내용을 보여주기 위한 레이아웃
     int cameraFacing;    // 카메라 전환 변수
+    boolean selected;   // 아이템이 선택되어 모드가 변경되었는지 확인하기 위한 논리 변수
 
     public static final int setting = 1001;
     public static final int emotionSelect = 1002;
@@ -167,6 +168,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                 Handler handler = new Handler();
                 float scale = (float) emotion.getWidth() / normal.getWidth();
                 float trans = emotion.getWidth() - (float) normal.getWidth() / 3;
+                itemID = 0;
                 switch (position) {
                     case 0:
                         if (prePosition == 1) {
@@ -179,12 +181,16 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                         trans_anim.setDuration(200);
                         trans_anim.start();
                         modeItem1.setTextVisible(false);
-                        handler.postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                popupSelectItem(emotionSelect);
-                            }
-                        }, 500);
+                        if (!selected) {
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    popupSelectItem(emotionSelect);
+                                }
+                            }, 500);
+                        }
+                        else
+                            selected = false;
                         break;
                     case 1:
                         decrease = new ScaleAnimation(scale, 1, 1, 1, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
@@ -205,12 +211,16 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                         trans_anim.setDuration(200);
                         trans_anim.start();
                         modeItem3.setTextVisible(false);
-                        handler.postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                popupSelectItem(poseSelect);
-                            }
-                        }, 500);
+                        if (!selected) {
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    popupSelectItem(poseSelect);
+                                }
+                            }, 500);
+                        }
+                        else
+                            selected = false;
                         break;
                     default:
                         break;
@@ -318,20 +328,22 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, @NonNull Intent data) {
         // 설정 버튼에서 선택한 아이템의 객체를 받아와 그에 따른 결과 수행
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
-            ListItem item = getIntent().getParcelableExtra("item");
+            ListItem item = data.getParcelableExtra("item");
             if (item != null) {
                 switch (item.getMode()) {
                     case EMOTION:
                         Toast.makeText(getApplicationContext(), "선택된 표정 : " + item.getItemName(), Toast.LENGTH_SHORT).show();
+                        selected = true;
                         pager.setCurrentItem(0);
                         break;
                     case POSE:
                         Toast.makeText(getApplicationContext(), "선택된 자세 : " + item.getItemName(), Toast.LENGTH_SHORT).show();
+                        selected = true;
                         pager.setCurrentItem(2);
                         break;
                 }

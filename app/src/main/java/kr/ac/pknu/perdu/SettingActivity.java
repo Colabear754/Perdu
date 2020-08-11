@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
@@ -67,18 +68,23 @@ public class SettingActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent intent = new Intent();
+                ListItem selectedItem;
                 // 아이템을 선택하면 해당 아이템 객체를 메인 액티비티로 전달하고 설정 액티비티 종료
                 switch (selectedMode) {
                     // selectedMode 값에 따라 표정 또는 자세의 객체를 메인 액티비티에 전송
                     case EMOTION:
-                        intent.putExtra("item", emotionAdapter.getItem(position));
+                        selectedItem = emotionAdapter.getItem(position);
+                        intent.putExtra("item", selectedItem);
+                        setResult(RESULT_OK, intent);
+                        finish();
                         break;
                     case POSE:
-                        intent.putExtra("item", poseAdapter.getItem(position));
+                        selectedItem = poseAdapter.getItem(position);
+                        intent.putExtra("item", selectedItem);
+                        setResult(RESULT_OK, intent);
+                        finish();
                         break;
                 }
-                setResult(RESULT_OK, intent);
-                finish();
             }
         });
     }
