@@ -67,6 +67,8 @@
             android:layout_height="wrap_content"
             android:horizontalSpacing="10dp"
             android:numColumns="2"
+            android:paddingTop="20dp"
+            android:paddingBottom="20dp"
             android:verticalSpacing="10dp" />
 
     </ScrollView>

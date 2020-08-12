@@ -1,14 +1,12 @@
 package kr.ac.pknu.perdu;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.viewpager.widget.ViewPager;
 
 import android.animation.ObjectAnimator;
 import android.content.Intent;
-import android.graphics.Color;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
@@ -59,14 +57,14 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     TextView zoomTextView;  // 줌 배율을 나타내는 텍스트뷰
     static LinearLayout zoomLayout;    // 줌 관련 내용을 보여주기 위한 레이아웃
     int cameraFacing;    // 카메라 전환 변수
-    boolean selected;   // 아이템이 선택되어 모드가 변경되었는지 확인하기 위한 논리 변수
+    boolean selected;   // 설정에서 아이템이 선택되어 모드가 변경되었는지 확인하기 위한 논리 변수
 
     public static final int setting = 1001;
     public static final int emotionSelect = 1002;
     public static final int poseSelect = 1003;
     private static final int EMOTION = 100001;
     private static final int POSE = 200001;
-    private int itemID;
+    private int selectedItemID = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -168,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                 Handler handler = new Handler();
                 float scale = (float) emotion.getWidth() / normal.getWidth();
                 float trans = emotion.getWidth() - (float) normal.getWidth() / 3;
-                itemID = 0;
+                selectedItemID = 0;
                 switch (position) {
                     case 0:
                         if (prePosition == 1) {
@@ -296,6 +294,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     }
 
     private void popupSelectItem(int requestCode) {
+        // 설정창 팝업 메소드
         Intent intent = new Intent(getApplicationContext(), SettingActivity.class);
         startActivityForResult(intent, requestCode);
     }
@@ -324,7 +323,19 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
 
     public void onSettingButton(View v) {
         // 설정 버튼 터치 메소드
-        popupSelectItem(setting);
+        // 현재 페이지에 따라서 요청코드가 달라짐
+        switch (pager.getCurrentItem()) {
+            case 0:
+                popupSelectItem(emotionSelect);
+                break;
+            case 1:
+                popupSelectItem(setting);
+                break;
+            case 2:
+                popupSelectItem(poseSelect);
+                break;
+            default: break;
+        }
     }
 
     @Override
@@ -350,15 +361,15 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
             }
         }
 
-        if (requestCode == emotionSelect) {     // 표정 모드에서 표정을 선택하지 않으면 표정 모드 화면의 텍스트뷰를 변경
-            if (resultCode == RESULT_CANCELED) {
+        if (requestCode == emotionSelect) {     // 선택된 아이템이 없는 상태일 때 표정 모드에서 표정을 선택하지 않으면 표정 모드 화면의 텍스트뷰를 변경
+            if (selectedItemID == -1 && resultCode == RESULT_CANCELED) {
                 modeItem1.setTextVisible(true);
                 modeItem1.setTextView("표정이 선택되지 않았습니다.", 0xFFEE0000);
             }
         }
 
-        else if (requestCode == poseSelect) {       // 자세 모드에서 자세를 선택하지 않으면 표정 모드 화면의 텍스트뷰를 변경
-            if (resultCode == RESULT_CANCELED) {
+        else if (requestCode == poseSelect) {       // 선택된 아이템이 없는 상태일 때 자세 모드에서 자세를 선택하지 않으면 표정 모드 화면의 텍스트뷰를 변경
+            if (selectedItemID == -1 && resultCode == RESULT_CANCELED) {
                 modeItem3.setTextVisible(true);
                 modeItem3.setTextView("자세가 선택되지 않았습니다.", 0xFFEE0000);
             }
