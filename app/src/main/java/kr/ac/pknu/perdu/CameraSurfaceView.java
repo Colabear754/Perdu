@@ -13,6 +13,9 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -25,13 +28,15 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
+public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callback {
     String TAG = "CameraSurfaceView";
 
     private int mCameraID;
     private SurfaceHolder surfaceHolder;
     private android.hardware.Camera camera = null;
     private Camera.CameraInfo cameraInfo;
+    public List<Camera.Size> previewSizesList;   // 미리보기 사이즈를 요소로 갖는 배열
+    private Camera.Size previewSize;    // 미리보기 사이즈를 저장
     private int displayOrientation;
     private boolean isPreview = false;  // 미리보기가 실행 중인지 확인하는 변수
     private AppCompatActivity appCompatActivity;
@@ -43,6 +48,7 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         mCameraID = cameraID;
         surfaceHolder = sView.getHolder();
         surfaceHolder.addCallback(this);
+
     }
 
     @Override
@@ -53,17 +59,113 @@ public class CameraSurfaceView extends SurfaceView implements SurfaceHolder.Call
         } catch (Exception e) {
             Log.e(TAG, "카메라" + mCameraID + "사용 불가." + e.getMessage());
         }
+        previewSizesList = camera.getParameters().getSupportedVideoSizes();
+        startPreview(mCameraID);
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        // surfaceCreated에서 오픈한 카메라를 이용해 surfaceView에 출력
-        startPreview(mCameraID);
+        // 프리뷰가 변경되거나 회전할 경우 동작
+        if (surfaceHolder == null) {
+            Log.e(TAG, "프리뷰가 존재하지 않음");
+            return;
+        }
+
+        try {
+            camera.stopPreview();
+            Log.d(TAG, "프리뷰 중지");
+        } catch (Exception e) {
+            Log.e(TAG, "프리뷰 중지 에러 : " + e.getMessage());
+        }
+
+        int orientation = calculateOrientation(cameraInfo, displayOrientation);
+        camera.setDisplayOrientation(orientation);
+
+        try {
+            camera.setPreviewDisplay(surfaceHolder);
+            camera.startPreview();
+            Log.d(TAG, "미리보기 재개");
+        } catch (Exception e) {
+            Log.e(TAG, "프리뷰 시작 에러 : " + e.getMessage());
+        }
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         finishPreview();
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        final int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
+        final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
+        setMeasuredDimension(width, height);
+
+        if (previewSizesList != null)
+            previewSize = getPreviewSize(previewSizesList, width, height);
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        if (changed && getChildCount() > 0) {
+            final View child = getChildAt(0);
+
+            final int width = r - l;
+            final int height = b - t;
+
+            int previewWidth = width;
+            int previewHeight = height;
+            if (previewSize != null) {
+                previewWidth = previewSize.width;
+                previewHeight = previewSize.height;
+            }
+
+            if (width * previewHeight > height * previewWidth) {
+                final int scaledChildWidth = previewWidth * height / previewHeight;
+                child.layout((width - scaledChildWidth) / 2, 0,(width + scaledChildWidth) / 2, height);
+            } else {
+                final int scaledChildHeight = previewHeight * width / previewWidth;
+                child.layout(0, (height - scaledChildHeight) / 2, width, (height + scaledChildHeight) / 2);
+            }
+        }
+    }
+
+    public Camera.Size getPreviewSize(List<Camera.Size> sizes, int width, int height) {
+        final double ASPECT_TOLERANCE = 0.1;
+        double targetRatio = (double) height / width;
+        Camera.Size optimalSize = null;
+        double minDiff;
+        int targetHeight;
+
+        if (sizes == null)
+            return null;
+
+        minDiff = Double.MAX_VALUE;
+        targetHeight = height;
+        // 서피스뷰 사이즈와 맞는 화면 비율과 사이즈를 구함
+        for (Camera.Size size : sizes) {
+            double ratio = (double) size.width / size.height;
+            if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE)
+                continue;
+
+            if (Math.abs(size.height - targetHeight) < minDiff) {
+                optimalSize = size;
+                minDiff = Math.abs(size.height - targetHeight);
+            }
+        }
+
+        // 맞는 화면 비율이 없으면 요청을 무시
+        if (optimalSize == null) {
+            minDiff = Double.MAX_VALUE;
+            for (Camera.Size size : sizes) {
+                if (Math.abs(size.height - targetHeight) < minDiff) {
+                    optimalSize = size;
+                    minDiff = Math.abs(size.height - targetHeight);
+                }
+            }
+        }
+
+        return optimalSize;
     }
 
     private int calculateOrientation(Camera.CameraInfo info, int rotation) {
