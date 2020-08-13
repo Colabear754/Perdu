@@ -60,9 +60,9 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     private int cameraFacing;    // 카메라 전환 변수
     private boolean selected;   // 설정에서 아이템이 선택되어 모드가 변경되었는지 확인하기 위한 논리 변수
 
-    public static final int setting = 1001;
-    public static final int emotionSelect = 1002;
-    public static final int poseSelect = 1003;
+    private static final int setting = 1001;
+    private static final int emotionSelect = 1002;
+    private static final int poseSelect = 1003;
     private static final int EMOTION = 100001;
     private static final int POSE = 200001;
     private int selectedItemID = -1;
@@ -297,6 +297,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     private void popupSelectItem(int requestCode) {
         // 설정창 팝업 메소드
         Intent intent = new Intent(getApplicationContext(), SettingActivity.class);
+        intent.putExtra("mode", requestCode);
         startActivityForResult(intent, requestCode);
     }
 

@@ -15,6 +15,7 @@ import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
+import android.widget.ImageButton;
 
 import java.util.ArrayList;
 
@@ -24,7 +25,12 @@ import kr.ac.pknu.perdu.itemlist.ListItem;
 public class SettingActivity extends AppCompatActivity {
     private int screenWidth, screenHeight;
     GridView itemList;
+    ImageButton emotionButton, poseButton;
     ItemAdapter emotionAdapter, poseAdapter;
+
+    private static final int setting = 1001;
+    private static final int emotionSelect = 1002;
+    private static final int poseSelect = 1003;
     private int selectedMode = 100001;
     private static final int EMOTION = 100001;
     private static final int POSE = 200001;
@@ -39,6 +45,8 @@ public class SettingActivity extends AppCompatActivity {
         screenHeight = display.getHeight();
 
         itemList = findViewById(R.id.itemList);
+        emotionButton = findViewById(R.id.emotionButton);
+        poseButton = findViewById(R.id.poseButton);
         emotionAdapter = new ItemAdapter();
         poseAdapter = new ItemAdapter();
 
@@ -60,6 +68,26 @@ public class SettingActivity extends AppCompatActivity {
         poseAdapter.addItem(new ListItem("자세6", 106, R.drawable.default_icon, POSE));
         poseAdapter.addItem(new ListItem("자세7", 107, R.drawable.default_icon, POSE));
         poseAdapter.addItem(new ListItem("자세8", 108, R.drawable.default_icon, POSE));
+
+        int currentMode = getIntent().getIntExtra("mode", setting);
+        switch (currentMode) {
+            case emotionSelect:
+                selectedMode = EMOTION;
+                poseButton.setVisibility(View.GONE);
+                emotionButton.setVisibility(View.VISIBLE);
+                itemList.setAdapter(emotionAdapter);
+                break;
+            case poseSelect:
+                selectedMode = POSE;
+                emotionButton.setVisibility(View.GONE);
+                poseButton.setVisibility(View.VISIBLE);
+                itemList.setAdapter(poseAdapter);
+                break;
+            default:
+                emotionButton.setVisibility(View.VISIBLE);
+                poseButton.setVisibility(View.VISIBLE);
+                break;
+        }
 
         itemList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
