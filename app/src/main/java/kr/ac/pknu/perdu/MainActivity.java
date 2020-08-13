@@ -84,6 +84,29 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
         FlashSpinnerAdapter flashSpinnerAdapter = new FlashSpinnerAdapter(getApplicationContext(), flashIcon);
         AspectRatioSpinnerAdapter aspectRatioSpinnerAdapter = new AspectRatioSpinnerAdapter(getApplicationContext(), aspectratioIcon);
         flashSpinner.setAdapter(flashSpinnerAdapter);
+        flashSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                switch (position) {
+                    case 0:
+                        cameraView.flashControl("auto");
+                        flashToastShow("자동");
+                        break;
+                    case 1:
+                        cameraView.flashControl("on");
+                        flashToastShow("켜짐");
+                        break;
+                    case 2:
+                        cameraView.flashControl("off");
+                        flashToastShow("꺼짐");
+                        break;
+                    default: break;
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
         aspectratioSpinner.setAdapter(aspectRatioSpinnerAdapter);
 
         // 여기부터 모드 변경을 위한 뷰페이저 코드
