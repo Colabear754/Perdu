@@ -11,6 +11,7 @@ import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.SurfaceView;
 import android.view.View;
@@ -56,8 +57,8 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     static SeekBar zoomSeekBar;    // 줌을 나타내는 시크바
     TextView zoomTextView;  // 줌 배율을 나타내는 텍스트뷰
     static LinearLayout zoomLayout;    // 줌 관련 내용을 보여주기 위한 레이아웃
-    int cameraFacing;    // 카메라 전환 변수
-    boolean selected;   // 설정에서 아이템이 선택되어 모드가 변경되었는지 확인하기 위한 논리 변수
+    private int cameraFacing;    // 카메라 전환 변수
+    private boolean selected;   // 설정에서 아이템이 선택되어 모드가 변경되었는지 확인하기 위한 논리 변수
 
     public static final int setting = 1001;
     public static final int emotionSelect = 1002;
@@ -83,29 +84,6 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
         FlashSpinnerAdapter flashSpinnerAdapter = new FlashSpinnerAdapter(getApplicationContext(), flashIcon);
         AspectRatioSpinnerAdapter aspectRatioSpinnerAdapter = new AspectRatioSpinnerAdapter(getApplicationContext(), aspectratioIcon);
         flashSpinner.setAdapter(flashSpinnerAdapter);
-        flashSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                switch (position) {
-                    case 0:
-                        cameraView.flashControl("auto");
-                        flashToastShow("자동");
-                        break;
-                    case 1:
-                        cameraView.flashControl("on");
-                        flashToastShow("켜짐");
-                        break;
-                    case 2:
-                        cameraView.flashControl("off");
-                        flashToastShow("꺼짐");
-                        break;
-                    default: break;
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
-        });
         aspectratioSpinner.setAdapter(aspectRatioSpinnerAdapter);
 
         // 여기부터 모드 변경을 위한 뷰페이저 코드
@@ -166,7 +144,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                 Handler handler = new Handler();
                 float scale = (float) emotion.getWidth() / normal.getWidth();
                 float trans = emotion.getWidth() - (float) normal.getWidth() / 3;
-                selectedItemID = 0;
+                selectedItemID = -1;
                 switch (position) {
                     case 0:
                         if (prePosition == 1) {
@@ -343,36 +321,40 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
         // 설정 버튼에서 선택한 아이템의 객체를 받아와 그에 따른 결과 수행
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (resultCode == RESULT_OK) {
-            ListItem item = data.getParcelableExtra("item");
-            if (item != null) {
-                switch (item.getMode()) {
-                    case EMOTION:
-                        Toast.makeText(getApplicationContext(), "선택된 표정 : " + item.getItemName(), Toast.LENGTH_SHORT).show();
-                        selected = true;
-                        pager.setCurrentItem(0);
-                        break;
-                    case POSE:
-                        Toast.makeText(getApplicationContext(), "선택된 자세 : " + item.getItemName(), Toast.LENGTH_SHORT).show();
-                        selected = true;
-                        pager.setCurrentItem(2);
-                        break;
+        switch (resultCode) {
+            case RESULT_OK:
+                ListItem item = data.getParcelableExtra("item");
+                if (item != null) {
+                    switch (item.getMode()) {
+                        case EMOTION:
+                            modeItem1.setTextVisible(false);
+                            Toast.makeText(getApplicationContext(), "선택된 표정 : " + item.getItemName(), Toast.LENGTH_SHORT).show();
+                            selected = true;
+                            pager.setCurrentItem(0);
+                            break;
+                        case POSE:
+                            modeItem3.setTextVisible(false);
+                            Toast.makeText(getApplicationContext(), "선택된 자세 : " + item.getItemName(), Toast.LENGTH_SHORT).show();
+                            selected = true;
+                            pager.setCurrentItem(2);
+                            break;
+                    }
+
+                    selectedItemID = item.getItemID();
                 }
-            }
-        }
+                break;
+            case RESULT_CANCELED:
+                if (requestCode == emotionSelect && selectedItemID == -1) {
+                    modeItem1.setTextVisible(true);
+                    modeItem1.setTextView("표정이 선택되지 않았습니다.", 0xFFEE0000);
+                }
 
-        if (requestCode == emotionSelect) {     // 선택된 아이템이 없는 상태일 때 표정 모드에서 표정을 선택하지 않으면 표정 모드 화면의 텍스트뷰를 변경
-            if (selectedItemID == -1 && resultCode == RESULT_CANCELED) {
-                modeItem1.setTextVisible(true);
-                modeItem1.setTextView("표정이 선택되지 않았습니다.", 0xFFEE0000);
-            }
-        }
-
-        else if (requestCode == poseSelect) {       // 선택된 아이템이 없는 상태일 때 자세 모드에서 자세를 선택하지 않으면 표정 모드 화면의 텍스트뷰를 변경
-            if (selectedItemID == -1 && resultCode == RESULT_CANCELED) {
-                modeItem3.setTextVisible(true);
-                modeItem3.setTextView("자세가 선택되지 않았습니다.", 0xFFEE0000);
-            }
+                else if (requestCode == poseSelect && selectedItemID == -1) {
+                    modeItem3.setTextVisible(true);
+                    modeItem3.setTextView("자세가 선택되지 않았습니다.", 0xFFEE0000);
+                }
+                break;
+            default: break;
         }
     }
 }
