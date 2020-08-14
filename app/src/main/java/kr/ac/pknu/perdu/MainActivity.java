@@ -86,6 +86,21 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
         flashSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                switch (position) {
+                    case 0:
+                        cameraView.flashControl("auto");
+                        flashToastShow("자동");
+                        break;
+                    case 1:
+                        cameraView.flashControl("on");
+                        flashToastShow("켜짐");
+                        break;
+                    case 2:
+                        cameraView.flashControl("off");
+                        flashToastShow("꺼짐");
+                        break;
+                    default: break;
+                }
             }
 
             @Override
