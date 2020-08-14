@@ -8,12 +8,16 @@
         android:id="@+id/flashSpinnerImage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/button_background" />
+        android:background="@drawable/button_background"
+        android:padding="6dp" />
 
-    <ImageView
-        android:id="@+id/aspectratioSpinnerImage"
+    <TextView
+        android:id="@+id/aspectRatioSpinnerImage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/button_background" />
+        android:background="@drawable/button_background"
+        android:gravity="center"
+        android:singleLine="true"
+        android:textColor="#FFFFFFFF" />
 
 </LinearLayout>

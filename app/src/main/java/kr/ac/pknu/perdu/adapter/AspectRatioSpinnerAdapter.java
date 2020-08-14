@@ -5,24 +5,24 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.ImageView;
+import android.widget.TextView;
 
 import kr.ac.pknu.perdu.R;
 
 public class AspectRatioSpinnerAdapter extends BaseAdapter {
     Context context;
     LayoutInflater inflater;
-    int[] spinnerImages;
+    String[] spinnerStrings;
 
-    public AspectRatioSpinnerAdapter(Context context, int[] images) {
+    public AspectRatioSpinnerAdapter(Context context, String[] str) {
         this.context = context;
-        this.spinnerImages = images;
+        this.spinnerStrings = str;
         inflater = (LayoutInflater.from(context));
     }
 
     @Override
     public int getCount() {
-        return spinnerImages.length;
+        return spinnerStrings.length;
     }
 
     @Override
@@ -38,8 +38,8 @@ public class AspectRatioSpinnerAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         convertView = inflater.inflate(R.layout.spinner_layout, null);
-        ImageView icon = convertView.findViewById(R.id.aspectratioSpinnerImage);
-        icon.setImageResource(spinnerImages[position]);
+        TextView icon = convertView.findViewById(R.id.aspectRatioSpinnerImage);
+        icon.setText(spinnerStrings[position]);
         return icon;
     }
 }

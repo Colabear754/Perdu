@@ -11,7 +11,6 @@ import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.SurfaceView;
 import android.view.View;
@@ -42,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     SurfaceView surfaceView;    // 미리보기를 표시하기 위한 서피스뷰
     // UI 변수들
     int[] flashIcon = {R.drawable.flash_auto_icon, R.drawable.flash_on_icon, R.drawable.flash_off_icon};    // 플래시 아이콘
-    int[] aspectratioIcon = {R.drawable.aspectratio_icon1, R.drawable.aspectratio_icon2, R.drawable.aspectratio_icon3}; // 화면 비율 아이콘
+    String[] aspectratioIcon = {"3 : 4", "9 : 16", "1 : 1"}; // 화면 비율 아이콘
     ModePager pager;    // 뷰페이저
     TextView emotion;   // 표정 모드 텍스트뷰
     TextView normal;    // 일반 모드 텍스트뷰
@@ -87,21 +86,6 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
         flashSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                switch (position) {
-                    case 0:
-                        cameraView.flashControl("auto");
-                        flashToastShow("자동");
-                        break;
-                    case 1:
-                        cameraView.flashControl("on");
-                        flashToastShow("켜짐");
-                        break;
-                    case 2:
-                        cameraView.flashControl("off");
-                        flashToastShow("꺼짐");
-                        break;
-                    default: break;
-                }
             }
 
             @Override
