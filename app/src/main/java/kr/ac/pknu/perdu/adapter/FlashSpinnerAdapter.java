@@ -41,6 +41,12 @@ public class FlashSpinnerAdapter extends BaseAdapter {
     public View getView(int position, View convertView, ViewGroup parent) {
         convertView = inflater.inflate(R.layout.spinner_layout, null);
         ImageView icon = convertView.findViewById(R.id.flashSpinnerImage);
+
+        if (position == 0)
+            icon.setBackgroundColor(0xFF000000);
+        else
+            icon.setBackgroundColor(0x00000000);
+
         icon.setImageResource(spinnerImages[position]);
         return icon;
     }

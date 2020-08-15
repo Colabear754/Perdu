@@ -40,8 +40,8 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     static CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
     SurfaceView surfaceView;    // 미리보기를 표시하기 위한 서피스뷰
     // UI 변수들
-    int[] flashIcon = {R.drawable.flash_auto_icon, R.drawable.flash_on_icon, R.drawable.flash_off_icon};    // 플래시 아이콘
-    String[] aspectratioIcon = {"3 : 4", "9 : 16", "1 : 1"}; // 화면 비율 아이콘
+    int[] flashIcons = {R.drawable.flash_auto_icon, R.drawable.flash_on_icon, R.drawable.flash_off_icon};    // 플래시 아이콘
+    String[] aspectRatioIcons = {"3 : 4", "9 : 16", "1 : 1"}; // 화면 비율 아이콘
     ModePager pager;    // 뷰페이저
     TextView emotion;   // 표정 모드 텍스트뷰
     TextView normal;    // 일반 모드 텍스트뷰
@@ -78,10 +78,10 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
         // 여기부터 상단 버튼을 위한 스피너 코드
         menuLayout = findViewById(R.id.menuLayout);
         Spinner flashSpinner = findViewById(R.id.flashSpinner);
-        Spinner aspectratioSpinner = findViewById(R.id.aspectratioSpinner);
+        Spinner aspectRatioSpinner = findViewById(R.id.aspectratioSpinner);
 
-        FlashSpinnerAdapter flashSpinnerAdapter = new FlashSpinnerAdapter(getApplicationContext(), flashIcon);
-        AspectRatioSpinnerAdapter aspectRatioSpinnerAdapter = new AspectRatioSpinnerAdapter(getApplicationContext(), aspectratioIcon);
+        FlashSpinnerAdapter flashSpinnerAdapter = new FlashSpinnerAdapter(getApplicationContext(), flashIcons);
+        AspectRatioSpinnerAdapter aspectRatioSpinnerAdapter = new AspectRatioSpinnerAdapter(getApplicationContext(), aspectRatioIcons);
         flashSpinner.setAdapter(flashSpinnerAdapter);
         flashSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -106,7 +106,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
         });
-        aspectratioSpinner.setAdapter(aspectRatioSpinnerAdapter);
+        aspectRatioSpinner.setAdapter(aspectRatioSpinnerAdapter);
 
         // 여기부터 모드 변경을 위한 뷰페이저 코드
         pager = findViewById(R.id.modePager);

@@ -1,5 +1,6 @@
 package kr.ac.pknu.perdu.adapter;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -35,10 +36,17 @@ public class AspectRatioSpinnerAdapter extends BaseAdapter {
         return 0;
     }
 
+    @SuppressLint({"InflateParams", "ViewHolder"})
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         convertView = inflater.inflate(R.layout.spinner_layout, null);
         TextView icon = convertView.findViewById(R.id.aspectRatioSpinnerImage);
+
+        if (position == 0)
+            icon.setBackgroundColor(0xFF000000);
+        else
+            icon.setBackgroundColor(0x00000000);
+
         icon.setText(spinnerStrings[position]);
         return icon;
     }

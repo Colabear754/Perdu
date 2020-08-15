@@ -51,23 +51,17 @@ public class SettingActivity extends AppCompatActivity {
         poseAdapter = new ItemAdapter();
 
         // 어댑터 샘플 코드
-        emotionAdapter.addItem(new ListItem("표정1", 101, R.drawable.default_icon, EMOTION));
-        emotionAdapter.addItem(new ListItem("표정2", 102, R.drawable.default_icon, EMOTION));
-        emotionAdapter.addItem(new ListItem("표정3", 103, R.drawable.default_icon, EMOTION));
-        emotionAdapter.addItem(new ListItem("표정4", 104, R.drawable.default_icon, EMOTION));
-        emotionAdapter.addItem(new ListItem("표정5", 105, R.drawable.default_icon, EMOTION));
-        emotionAdapter.addItem(new ListItem("표정6", 106, R.drawable.default_icon, EMOTION));
-        emotionAdapter.addItem(new ListItem("표정7", 107, R.drawable.default_icon, EMOTION));
-        emotionAdapter.addItem(new ListItem("표정8", 108, R.drawable.default_icon, EMOTION));
+        emotionAdapter.addItem(new ListItem("표정1", 101, R.drawable.emotion01, EMOTION));
+        emotionAdapter.addItem(new ListItem("표정2", 102, R.drawable.emotion02, EMOTION));
+        emotionAdapter.addItem(new ListItem("표정3", 103, R.drawable.emotion03, EMOTION));
+        emotionAdapter.addItem(new ListItem("표정4", 104, R.drawable.emotion04, EMOTION));
 
-        poseAdapter.addItem(new ListItem("자세1", 101, R.drawable.default_icon, POSE));
-        poseAdapter.addItem(new ListItem("자세2", 102, R.drawable.default_icon, POSE));
-        poseAdapter.addItem(new ListItem("자세3", 103, R.drawable.default_icon, POSE));
-        poseAdapter.addItem(new ListItem("자세4", 104, R.drawable.default_icon, POSE));
-        poseAdapter.addItem(new ListItem("자세5", 105, R.drawable.default_icon, POSE));
-        poseAdapter.addItem(new ListItem("자세6", 106, R.drawable.default_icon, POSE));
-        poseAdapter.addItem(new ListItem("자세7", 107, R.drawable.default_icon, POSE));
-        poseAdapter.addItem(new ListItem("자세8", 108, R.drawable.default_icon, POSE));
+        poseAdapter.addItem(new ListItem("자세1", 101, R.drawable.pose01, POSE));
+        poseAdapter.addItem(new ListItem("자세2", 102, R.drawable.pose02, POSE));
+        poseAdapter.addItem(new ListItem("자세3", 103, R.drawable.pose03, POSE));
+        poseAdapter.addItem(new ListItem("자세4", 104, R.drawable.pose04, POSE));
+        poseAdapter.addItem(new ListItem("자세5", 105, R.drawable.pose05, POSE));
+        poseAdapter.addItem(new ListItem("자세6", 106, R.drawable.pose06, POSE));
 
         int currentMode = getIntent().getIntExtra("mode", setting);
         switch (currentMode) {
