@@ -4,11 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
 import android.view.Surface;
@@ -19,15 +17,11 @@ import android.view.ViewGroup;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.gms.vision.CameraSource;
-
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -60,7 +54,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         // 카메라 열기를 시도하고 실패하면 에러로그 출력
         try {
             camera = Camera.open(mCameraID);
-            camera.setFaceDetectionListener(new FaceDetector());
+            //camera.setFaceDetectionListener(new FaceDetector());
         } catch (Exception e) {
             Log.e(TAG, "카메라" + mCameraID + "사용 불가." + e.getMessage());
         }
@@ -89,7 +83,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         try {
             camera.setPreviewDisplay(surfaceHolder);
             camera.startPreview();
-            startFaceDetection();
+            //startFaceDetection();
             Log.d(TAG, "미리보기 재개");
         } catch (Exception e) {
             Log.e(TAG, "프리뷰 시작 에러 : " + e.getMessage());
@@ -326,7 +320,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         try {
             camera.setPreviewDisplay(surfaceHolder);
             camera.startPreview();
-            startFaceDetection();
+            //startFaceDetection();
             Log.d(TAG, (cameraID == 0 ? "후면 " : "전면 ") + "카메라 미리보기 시작.");
             isPreview = true;
         } catch (Exception e) {
@@ -345,7 +339,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
             isPreview = false;
         }
     }
-
+/*
     public void startFaceDetection() {
         // 얼굴 인식 시도 메소드
         Camera.Parameters parameters = camera.getParameters();
@@ -362,5 +356,5 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
                 Log.d(TAG, "얼굴 탐지됨 : " + faces.length + ", 얼굴 위치 X : " + faces[0].rect.centerX() + ", Y : " + faces[0].rect.centerY());
             }
         }
-    }
+    }*/
 }
