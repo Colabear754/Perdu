@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.net.Uri;
@@ -18,17 +19,21 @@ import android.view.ViewGroup;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.gms.vision.CameraSource;
+
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
 public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callback {
-    String TAG = "CameraSurfaceView";
+    private static final String TAG = "CameraSurfaceView";
 
     private int mCameraID;
     private SurfaceHolder surfaceHolder;
@@ -55,6 +60,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         // 카메라 열기를 시도하고 실패하면 에러로그 출력
         try {
             camera = Camera.open(mCameraID);
+            camera.setFaceDetectionListener(new FaceDetector());
         } catch (Exception e) {
             Log.e(TAG, "카메라" + mCameraID + "사용 불가." + e.getMessage());
         }
@@ -83,6 +89,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         try {
             camera.setPreviewDisplay(surfaceHolder);
             camera.startPreview();
+            startFaceDetection();
             Log.d(TAG, "미리보기 재개");
         } catch (Exception e) {
             Log.e(TAG, "프리뷰 시작 에러 : " + e.getMessage());
@@ -204,66 +211,63 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     Camera.PictureCallback pngCallback = new Camera.PictureCallback() {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
-            // 촬영한 사진을 비트맵이미지로 만들어 저장
-            int orientation = calculateOrientation(cameraInfo, displayOrientation);
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-            Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
-            Matrix matrix = new Matrix();
-            matrix.postRotate(orientation);
-            bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-            byte[] currentData = stream.toByteArray();
-            new SaveImageTask().execute(currentData);
+            File picture = getOutputMediaFile();
+            if (picture == null) {
+                Log.e(TAG, "이미지 파일 생성 실패, 저장소 권한을 확인하시오.");
+                return;
+            }
+
+            try {
+                int orientation = calculateOrientation(cameraInfo, displayOrientation);
+                InputStream is = new ByteArrayInputStream(data);
+                Bitmap bitmap = BitmapFactory.decodeStream(is);
+                Matrix matrix = new Matrix();
+                matrix.postRotate(orientation);
+                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+
+                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                byte[] rotatedData = stream.toByteArray();
+
+                FileOutputStream fos = new FileOutputStream(picture);
+                fos.write(rotatedData);
+                fos.close();
+            } catch (FileNotFoundException e) {
+                Log.e(TAG, "파일을 찾을 수 없음 : " + e.getMessage());
+            } catch (IOException e) {
+                Log.e(TAG, "파일에 접근할 수 없음 : " + e.getMessage());
+            }
+
+            try {
+                camera.setPreviewDisplay(surfaceHolder);
+                camera.startPreview();
+                Log.d(TAG, "카메라 미리보기 시작.");
+            } catch (Exception e) {
+                Log.d(TAG, "카메라 미리보기 시작 오류." + e.getMessage());
+            }
+
+            // 갤러리에 반영
+            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+            mediaScanIntent.setData(Uri.fromFile(picture));
+            getContext().sendBroadcast(mediaScanIntent);
         }
     };
 
-    private class SaveImageTask extends AsyncTask<byte[], Void, Void> {
-        // 사진 저장
-        @Override
-        protected Void doInBackground(byte[]... bytes) {
-            boolean mkdirs;
-            FileOutputStream outStream;
-            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-            try {
-                File path = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath() + "/Perdu");
-                if (!path.exists()) {
-                    mkdirs = path.mkdirs();
-                    if (!mkdirs)
-                        Log.d(TAG, path.toString() + " 디렉토리 생성 실패.");
-                }
-                String fileName = "Perdu_" + timeStamp + ".png";
-                File outputFile = new File(path, fileName);
+    private static File getOutputMediaFile() {
+        File path = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Perdu");
 
-                outStream = new FileOutputStream(outputFile);
-                outStream.write(bytes[0]);
-                outStream.flush();
-                outStream.close();
-
-                Log.d("Perdu", "onPictureTaken - wrote bytes: " + bytes.length + " to " + outputFile.getAbsolutePath());
-
-                camera.startPreview();
-                // 갤러리에 반영
-                Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-                mediaScanIntent.setData(Uri.fromFile(outputFile));
-                getContext().sendBroadcast(mediaScanIntent);
-
-                try {
-                    camera.setPreviewDisplay(surfaceHolder);
-                    camera.startPreview();
-                    Log.d(TAG, "카메라 미리보기 시작.");
-                } catch (Exception e) {
-                    Log.d(TAG, "카메라 미리보기 시작 오류." + e.getMessage());
-                }
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+        if (!path.exists()) {
+            if (!path.mkdirs()) {
+                Log.e(TAG, path.toString() + " 디렉토리 생성 실패");
+                return null;
             }
-
-            return null;
         }
+
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        File image = new File(path.getPath() + File.separator + "Perdu_" + timeStamp + ".png");
+
+        Log.i("Perdu", "사진 촬영 : " + path.toString() + "/" + image.toString());
+        return image;
     }
 
     public void changeCamera(int cameraID) {
@@ -313,7 +317,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         displayOrientation = appCompatActivity.getWindowManager().getDefaultDisplay().getRotation();
         int orientation = calculateOrientation(cameraInfo, displayOrientation);
         camera.setDisplayOrientation(orientation);
-        // 자동 초점
+
         Camera.Parameters parameters = camera.getParameters();
         List<String> focusModes = parameters.getSupportedFocusModes();
         if (focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO))
@@ -323,6 +327,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         try {
             camera.setPreviewDisplay(surfaceHolder);
             camera.startPreview();
+            startFaceDetection();
             Log.d(TAG, (cameraID == 0 ? "후면 " : "전면 ") + "카메라 미리보기 시작.");
             isPreview = true;
         } catch (Exception e) {
@@ -339,6 +344,24 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
             camera.release();
             camera = null;
             isPreview = false;
+        }
+    }
+
+    public void startFaceDetection() {
+        // 얼굴 인식 시도 메소드
+        Camera.Parameters parameters = camera.getParameters();
+        // 프리뷰가 시작된 이후에만 얼굴 인식 시도
+        if (parameters.getMaxNumDetectedFaces() > 0)
+            camera.startFaceDetection();
+    }
+
+    class FaceDetector implements Camera.FaceDetectionListener {
+        // 얼굴 인식 리스너
+        @Override
+        public void onFaceDetection(Camera.Face[] faces, Camera camera) {
+            if (faces.length > 0) {
+                Log.d(TAG, "얼굴 탐지됨 : " + faces.length + ", 얼굴 위치 X : " + faces[0].rect.centerX() + ", Y : " + faces[0].rect.centerY());
+            }
         }
     }
 }

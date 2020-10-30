@@ -24,7 +24,7 @@ import kr.ac.pknu.perdu.itemlist.ListItem;
 
 public class SettingActivity extends AppCompatActivity {
     private int screenWidth, screenHeight;
-    GridView itemList;
+    GridView itemList;     // 아이템을 표시하기 위한 그리드뷰
     ImageButton emotionButton, poseButton;
     ItemAdapter emotionAdapter, poseAdapter;
 
