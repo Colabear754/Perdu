@@ -219,8 +219,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
 
             try {
                 int orientation = calculateOrientation(cameraInfo, displayOrientation);
-                InputStream is = new ByteArrayInputStream(data);
-                Bitmap bitmap = BitmapFactory.decodeStream(is);
+                Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                 Matrix matrix = new Matrix();
                 matrix.postRotate(orientation);
                 bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
