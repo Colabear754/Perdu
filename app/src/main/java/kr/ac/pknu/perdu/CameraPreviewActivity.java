@@ -36,8 +36,8 @@ import kr.ac.pknu.perdu.mode.ModeItem1;
 import kr.ac.pknu.perdu.mode.ModeItem2;
 import kr.ac.pknu.perdu.mode.ModeItem3;
 
-public class MainActivity extends AppCompatActivity implements AutoPermissionsListener {
-    static CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
+public class CameraPreviewActivity extends AppCompatActivity implements AutoPermissionsListener {
+    public static CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
     SurfaceView surfaceView;    // 미리보기를 표시하기 위한 서피스뷰
     // UI 변수들
     int[] flashIcons = {R.drawable.flash_auto_icon, R.drawable.flash_on_icon, R.drawable.flash_off_icon};    // 플래시 아이콘
@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     static SeekBar zoomSeekBar;    // 줌을 나타내는 시크바
     TextView zoomTextView;  // 줌 배율을 나타내는 텍스트뷰
     static LinearLayout zoomLayout;    // 줌 관련 내용을 보여주기 위한 레이아웃
-    private int cameraFacing;    // 카메라 전환 변수
+    static int cameraFacing;    // 카메라 전환 변수
     private boolean selected;   // 설정에서 아이템이 선택되어 모드가 변경되었는지 확인하기 위한 논리 변수
 
     private static final int setting = 1001;
@@ -66,15 +66,23 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
     private static final int POSE = 200001;
     private int selectedItemID = -1;
 
+    public GraphicOverlay overlay;
+    private FaceDetector faceDetector;
+
+    private int width, height;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_camera);
         surfaceView = findViewById(R.id.previewFrame);
 
         AutoPermissions.Companion.loadAllPermissions(this, 101);    // 자동 권한 요청
         cameraFacing = Camera.CameraInfo.CAMERA_FACING_BACK;    // 후면 카메라를 기본 카메라로 설정
+
+        overlay = findViewById(R.id.graphicOverlay);
         startCamera();  // 미리보기 시작
+
         // 여기부터 상단 버튼을 위한 스피너 코드
         menuLayout = findViewById(R.id.menuLayout);
         Spinner flashSpinner = findViewById(R.id.flashSpinner);
@@ -189,6 +197,8 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                         }
                         else
                             selected = false;
+
+                        //faceDetector.startDetector();
                         break;
                     case 1:
                         decrease = new ScaleAnimation(scale, 1, 1, 1, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
@@ -197,6 +207,8 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                         selectedMode.startAnimation(decrease);
                         trans_anim = ObjectAnimator.ofFloat(modeLayout, "translationX", 0f);
                         trans_anim.start();
+
+                        //faceDetector.stopDetector();
                         break;
                     case 2:
                         if (prePosition == 1) {
@@ -219,6 +231,8 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
                         }
                         else
                             selected = false;
+
+                        //faceDetector.stopDetector();
                         break;
                     default:
                         break;
@@ -261,9 +275,35 @@ public class MainActivity extends AppCompatActivity implements AutoPermissionsLi
         focusOval = findViewById(R.id.focusOval);
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        //faceDetector.stopDetector();
+    }
+
     void startCamera() {
         // 서피스뷰 객체를 생성하여 카메라 미리보기 시작
         cameraView = new CameraSurfaceView(this, this, cameraFacing, surfaceView);
+
+        //faceDetector = new FaceDetector(this);
+        //faceDetector.setOverlay(overlay);
+        /*
+        width = cameraView.getWidth();
+        height = cameraView.getHeight();
+        */
+    }
+
+    public void onPreviewFrameCallback(byte[] data, Camera camera) {
+        camera.addCallbackBuffer(data);
+        //faceDetector.receiveFrameData(data);
+    }
+
+    public int getPreviewWidth() {
+        return width;
+    }
+
+    public int getPreviewHeight() {
+        return height;
     }
 
     // 여기부터 권한 요청 메소드 3개

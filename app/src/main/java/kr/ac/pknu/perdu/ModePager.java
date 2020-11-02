@@ -30,34 +30,34 @@ public class ModePager extends ViewPager {
         switch (event.getAction() & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_DOWN:   // 한손가락 터치 시 포커스 맞춤
                 if (event.getPointerCount() == 1) {
-                    MainActivity.focusOval.setX(event.getX());
-                    MainActivity.focusOval.setY(event.getY());
-                    MainActivity.focusOval.setVisibility(View.VISIBLE);
-                    MainActivity.cameraView.focus();
+                    CameraPreviewActivity.focusOval.setX(event.getX());
+                    CameraPreviewActivity.focusOval.setY(event.getY());
+                    CameraPreviewActivity.focusOval.setVisibility(View.VISIBLE);
+                    CameraPreviewActivity.cameraView.focus();
                     handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
-                            MainActivity.focusOval.setVisibility(View.GONE);
+                            CameraPreviewActivity.focusOval.setVisibility(View.GONE);
                         }
                     }, 2000);
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (event.getPointerCount() == 2) {
-                    MainActivity.zoomLayout.setVisibility(View.VISIBLE);
+                    CameraPreviewActivity.zoomLayout.setVisibility(View.VISIBLE);
                     double interval_X = Math.abs(event.getX(0) - event.getX(1));   // 두 손가락 사이 X좌표 절대값
                     double interval_Y = Math.abs(event.getY(0) - event.getY(1));   // 두 손가락 사이 Y좌표 절대값
 
                     if (pre_interval_X < interval_X && pre_interval_Y < interval_Y) {
                         // 시크바에 전달하여 줌 인
                         touch_zoom++;
-                        MainActivity.zoomSeekBar.setProgress(touch_zoom);
+                        CameraPreviewActivity.zoomSeekBar.setProgress(touch_zoom);
                     }
 
                     if (pre_interval_X > interval_X && pre_interval_Y > interval_Y) {
                         // 시크바에 전달하여 줌 아웃
                         touch_zoom--;
-                        MainActivity.zoomSeekBar.setProgress(touch_zoom);
+                        CameraPreviewActivity.zoomSeekBar.setProgress(touch_zoom);
                     }
                     pre_interval_X = Math.abs(event.getX(0) - event.getX(1));  // 현재 X 값을 이전 값에 저장
                     pre_interval_Y = Math.abs(event.getY(0) - event.getY(1));  // 현재 Y 값을 이전 값에 저장
@@ -67,7 +67,7 @@ public class ModePager extends ViewPager {
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        MainActivity.zoomLayout.setVisibility(View.GONE);
+                        CameraPreviewActivity.zoomLayout.setVisibility(View.GONE);
                     }
                 }, 2000);
         }

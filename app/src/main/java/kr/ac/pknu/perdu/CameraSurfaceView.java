@@ -2,9 +2,6 @@ package kr.ac.pknu.perdu;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Environment;
@@ -17,7 +14,6 @@ import android.view.ViewGroup;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -32,21 +28,26 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     private int mCameraID;
     private SurfaceHolder surfaceHolder;
     private android.hardware.Camera camera = null;
-    private Camera.CameraInfo cameraInfo;
+    private static Camera.CameraInfo cameraInfo;
     public List<Camera.Size> previewSizesList;   // 미리보기 사이즈를 요소로 갖는 배열
-    private Camera.Size previewSize;    // 미리보기 사이즈를 저장
-    private int displayOrientation;
+    public static Camera.Size previewSize;    // 미리보기 사이즈를 저장
+    private static int displayOrientation;
+    private static int rotationAngle;
     private boolean isPreview = false;  // 미리보기가 실행 중인지 확인하는 변수
     private AppCompatActivity appCompatActivity;
+
+    private Context context;
+    private GraphicOverlay overlay;
+    private FaceDetector faceDetector;
 
     public CameraSurfaceView(Context context, AppCompatActivity activity, int cameraID, SurfaceView sView) {
         super(context);
 
+        this.context = context;
         appCompatActivity = activity;
         mCameraID = cameraID;
         surfaceHolder = sView.getHolder();
         surfaceHolder.addCallback(this);
-
     }
 
     @Override
@@ -54,7 +55,6 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         // 카메라 열기를 시도하고 실패하면 에러로그 출력
         try {
             camera = Camera.open(mCameraID);
-            //camera.setFaceDetectionListener(new FaceDetector());
         } catch (Exception e) {
             Log.e(TAG, "카메라" + mCameraID + "사용 불가." + e.getMessage());
         }
@@ -65,6 +65,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         // 프리뷰가 변경되거나 회전할 경우 동작
+        Camera.Parameters parameters = camera.getParameters();
         if (surfaceHolder == null) {
             Log.e(TAG, "프리뷰가 존재하지 않음");
             return;
@@ -77,12 +78,13 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
             Log.e(TAG, "프리뷰 중지 에러 : " + e.getMessage());
         }
 
-        int orientation = calculateOrientation(cameraInfo, displayOrientation);
-        camera.setDisplayOrientation(orientation);
+        setRotation(cameraInfo, displayOrientation, parameters);
+        camera.setParameters(parameters);
 
         try {
             camera.setPreviewDisplay(surfaceHolder);
             camera.startPreview();
+            faceDetector.startDetector();
             //startFaceDetection();
             Log.d(TAG, "미리보기 재개");
         } catch (Exception e) {
@@ -130,7 +132,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         }
     }
 
-    public Camera.Size getPreviewSize(List<Camera.Size> sizes, int width, int height) {
+    private Camera.Size getPreviewSize(List<Camera.Size> sizes, int width, int height) {
         final double ASPECT_TOLERANCE = 0.1;
         double targetRatio = (double) height / width;
         Camera.Size optimalSize = null;
@@ -168,8 +170,9 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         return optimalSize;
     }
 
-    private int calculateOrientation(Camera.CameraInfo info, int rotation) {
+    private void setRotation(Camera.CameraInfo info, int rotation, Camera.Parameters parameters) {
         // 프리뷰와 사진을 회전시킬 각도를 계산하여 반환
+        int result;
         int degrees = 0;
         switch (rotation) {
             case Surface.ROTATION_0:
@@ -186,14 +189,16 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
                 break;
         }
 
-        int result;
         if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             result = (info.orientation + degrees) % 360;
             result = (360 - result) % 360;
         } else
             result = (info.orientation - degrees + 360) % 360;
 
-        return result;
+        rotationAngle = result;
+
+        camera.setDisplayOrientation(result);
+        parameters.setRotation(result);
     }
 
     public void capture() {
@@ -212,18 +217,8 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
             }
 
             try {
-                int orientation = calculateOrientation(cameraInfo, displayOrientation);
-                Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-                Matrix matrix = new Matrix();
-                matrix.postRotate(orientation);
-                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-
-                ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                byte[] rotatedData = stream.toByteArray();
-
                 FileOutputStream fos = new FileOutputStream(picture);
-                fos.write(rotatedData);
+                fos.write(data);
                 fos.close();
             } catch (FileNotFoundException e) {
                 Log.e(TAG, "파일을 찾을 수 없음 : " + e.getMessage());
@@ -302,16 +297,17 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     }
 
     private void startPreview(int cameraID) {
+        overlay = ((CameraPreviewActivity) context).overlay;
         // 카메라 ID를 매개변수로 받아 프리뷰를 생성
         Camera.CameraInfo info = new Camera.CameraInfo();
         Camera.getCameraInfo(cameraID, info);
 
         cameraInfo = info;
         displayOrientation = appCompatActivity.getWindowManager().getDefaultDisplay().getRotation();
-        int orientation = calculateOrientation(cameraInfo, displayOrientation);
-        camera.setDisplayOrientation(orientation);
 
         Camera.Parameters parameters = camera.getParameters();
+        parameters.setPreviewFpsRange(30000, 30000);
+        setRotation(cameraInfo, displayOrientation, parameters);
         List<String> focusModes = parameters.getSupportedFocusModes();
         if (focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO))
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
@@ -320,8 +316,10 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         try {
             camera.setPreviewDisplay(surfaceHolder);
             camera.startPreview();
-            //startFaceDetection();
-            Log.d(TAG, (cameraID == 0 ? "후면 " : "전면 ") + "카메라 미리보기 시작.");
+            faceDetector = new FaceDetector(context);
+            faceDetector.setOverlay(overlay);
+            faceDetector.startDetector();
+            Log.i(TAG, (cameraID == 0 ? "후면 " : "전면 ") + "카메라 미리보기 시작.");
             isPreview = true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -331,14 +329,21 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     private void finishPreview() {
         // 프리뷰를 종료하고 카메라를 반환하는 메소드
         if (camera != null) {
-            if (isPreview)
+            if (isPreview) {
+                faceDetector.stopDetector();
                 camera.stopPreview();
+            }
             camera.setPreviewCallback(null);
             camera.release();
             camera = null;
             isPreview = false;
         }
     }
+
+    public static int getPreviewRotation() {
+        return rotationAngle / 90;
+    }
+
 /*
     public void startFaceDetection() {
         // 얼굴 인식 시도 메소드

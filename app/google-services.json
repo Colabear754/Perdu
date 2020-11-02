@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "590437462221",
+    "firebase_url": "https://myfacedetector-b4030.firebaseio.com",
+    "project_id": "myfacedetector-b4030",
+    "storage_bucket": "myfacedetector-b4030.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:590437462221:android:192cba0794e965e927b984",
+        "android_client_info": {
+          "package_name": "kr.ac.pknu.perdu"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "590437462221-7umqsab1ff0otmtb72391tk6go00ehu5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1Vr05cLnly006A_3Lv7kFkiZuktUKQt0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "590437462221-7umqsab1ff0otmtb72391tk6go00ehu5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
