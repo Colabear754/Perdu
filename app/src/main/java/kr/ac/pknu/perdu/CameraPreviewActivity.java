@@ -11,6 +11,7 @@ import android.content.res.Configuration;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.util.SparseIntArray;
@@ -30,6 +31,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
+import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.pedro.library.AutoPermissions;
 import com.pedro.library.AutoPermissionsListener;
 
@@ -37,41 +39,55 @@ import kr.ac.pknu.perdu.adapter.AspectRatioSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.FlashSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.ModePagerAdapter;
 import kr.ac.pknu.perdu.itemlist.ListItem;
+import kr.ac.pknu.perdu.mode.ModeHelper;
 import kr.ac.pknu.perdu.mode.ModeItem1;
 import kr.ac.pknu.perdu.mode.ModeItem2;
 import kr.ac.pknu.perdu.mode.ModeItem3;
 
 public class CameraPreviewActivity extends AppCompatActivity implements AutoPermissionsListener, CameraApiCallback {
     private static final String TAG = "Perdu";
-    public static CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
-    SurfaceView surfaceView;    // 미리보기를 표시하기 위한 서피스뷰
-    // UI 변수들
-    int[] flashIcons = {R.drawable.flash_auto_icon, R.drawable.flash_on_icon, R.drawable.flash_off_icon};    // 플래시 아이콘
-    String[] aspectRatioIcons = {"3 : 4", "9 : 16", "1 : 1"}; // 화면 비율 아이콘
-    ModePager pager;    // 뷰페이저
-    TextView emotion;   // 표정 모드 텍스트뷰
-    TextView normal;    // 일반 모드 텍스트뷰
-    TextView pose;  // 자세 모드 텍스트뷰
-    final ModeItem1 modeItem1 = new ModeItem1();
-    final ModeItem2 modeItem2 = new ModeItem2();
-    final ModeItem3 modeItem3 = new ModeItem3();
-    LinearLayout modeLayout;    // 모드 변경 레이아웃
-    ImageView selectedMode; // 선택된 모드를 표시
-    ConstraintLayout menuLayout;    // 상단 메뉴 레이아웃
-    static ImageView focusOval;    // 수동 초점 맞출 때 나오는 원
-    static SeekBar zoomSeekBar;    // 줌을 나타내는 시크바
-    TextView zoomTextView;  // 줌 배율을 나타내는 텍스트뷰
-    static LinearLayout zoomLayout;    // 줌 관련 내용을 보여주기 위한 레이아웃
-    static int cameraFacing;    // 카메라 전환 변수
-    private boolean selected;   // 설정에서 아이템이 선택되어 모드가 변경되었는지 확인하기 위한 논리 변수
-    private ListItem selectedItem;  // 선택된 아이템
-    protected static int rotation;
-
     private static final int setting = 1001;
     private static final int emotionSelect = 1002;
     private static final int poseSelect = 1003;
     private static final int EMOTION = 100001;
     private static final int POSE = 200001;
+
+    protected static CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
+    SurfaceView surfaceView;    // 미리보기를 표시하기 위한 서피스뷰
+
+    private final int[] flashIcons = {R.drawable.flash_auto_icon, R.drawable.flash_on_icon, R.drawable.flash_off_icon};    // 플래시 아이콘
+    private final String[] aspectRatioIcons = {"3 : 4", "9 : 16", "1 : 1"}; // 화면 비율 아이콘
+
+    private ModePager pager;    // 뷰페이저
+    private TextView emotion;   // 표정 모드 텍스트뷰
+    private TextView normal;    // 일반 모드 텍스트뷰
+    private TextView pose;  // 자세 모드 텍스트뷰
+    private ImageView selectedMode; // 선택된 모드를 표시
+    private LinearLayout modeLayout;    // 모드 변경 레이아웃
+    private final ModeItem1 modeItem1 = new ModeItem1();
+    private final ModeItem2 modeItem2 = new ModeItem2();
+    private final ModeItem3 modeItem3 = new ModeItem3();
+
+    private ConstraintLayout menuLayout;    // 상단 메뉴 레이아웃
+    private ImageView focusOval;    // 수동 초점 맞출 때 나오는 원
+
+    private SeekBar zoomSeekBar;    // 줌을 나타내는 시크바
+    private TextView zoomTextView;  // 줌 배율을 나타내는 텍스트뷰
+    private LinearLayout zoomLayout;    // 줌 관련 내용을 보여주기 위한 레이아웃
+
+    protected static int cameraFacing;    // 카메라 전환 변수
+    private boolean selected;   // 설정에서 아이템이 선택되어 모드가 변경되었는지 확인하기 위한 논리 변수
+    private boolean isAutoCaptureStart; // 자동 캡쳐가 시작되었는지 확인하기 위한 논리 변수
+
+    private ListItem selectedEmotion;  // 선택된 표정
+    private ListItem selectedPose;  // 선택된 자세
+    protected static int rotation;
+
+    private final byte[] lock = new byte[]{0};
+
+    private AutoCaptureThread autoCaptureThread = null;
+    private AutoCaptureHandler autoCaptureHandler;
+
     private int selectedItemID = -1;
 
     public GraphicOverlay overlay;
@@ -93,6 +109,8 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
 
         AutoPermissions.Companion.loadAllPermissions(this, 101);    // 자동 권한 요청
         cameraFacing = Camera.CameraInfo.CAMERA_FACING_BACK;    // 후면 카메라를 기본 카메라로 설정
+
+        autoCaptureHandler = new AutoCaptureHandler();
 
         overlay = findViewById(R.id.graphicOverlay);
         startCamera();  // 미리보기 시작
@@ -126,7 +144,6 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                     default: break;
                 }
             }
-
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
         });
@@ -205,6 +222,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                             increase.setFillAfter(true);
                             selectedMode.startAnimation(increase);
                         }
+                        selectedPose = null;
                         trans_anim = ObjectAnimator.ofFloat(modeLayout, "translationX", trans);
                         trans_anim.setDuration(200);
                         trans_anim.start();
@@ -219,28 +237,29 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                         }
                         else
                             selected = false;
-
-                        faceDetector.startDetector();
                         break;
                     case 1:
-                        selectedItem = null;
+                        stopAutoCapture();
+                        faceDetector.stopDetector();
+                        selectedEmotion = null;
+                        selectedPose = null;
                         decrease = new ScaleAnimation(scale, 1, 1, 1, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                         decrease.setDuration(200);
                         decrease.setFillAfter(true);
                         selectedMode.startAnimation(decrease);
                         trans_anim = ObjectAnimator.ofFloat(modeLayout, "translationX", 0f);
                         trans_anim.start();
-
-                        faceDetector.stopDetector();
                         break;
                     case 2:
                         if (prePosition == 1) {
-                            selectedItem = null;
                             increase = new ScaleAnimation(1, scale, 1, 1, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                             increase.setDuration(200);
                             increase.setFillAfter(true);
                             selectedMode.startAnimation(increase);
                         }
+                        stopAutoCapture();
+                        faceDetector.stopDetector();
+                        selectedEmotion = null;
                         trans_anim = ObjectAnimator.ofFloat(modeLayout, "translationX", -trans);
                         trans_anim.setDuration(200);
                         trans_anim.start();
@@ -255,8 +274,6 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                         }
                         else
                             selected = false;
-
-                        faceDetector.stopDetector();
                         break;
                     default:
                         break;
@@ -307,8 +324,10 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         faceDetector.stopDetector();
     }
 
-    void startCamera() {
-        // 서피스뷰 객체를 생성하여 카메라 미리보기 시작
+    //////////////////////////////////////////////
+    // 서피스뷰 객체를 생성하여 카메라 미리보기 시작
+    //////////////////////////////////////////////
+    private void startCamera() {
         cameraView = new CameraSurfaceView(this, this, cameraFacing, surfaceView, this);
 
         faceDetector = new FaceDetector(this);
@@ -435,10 +454,114 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         return result;
     }
 
+    //////////////////////////////////////////////
+    // 단말기가 회전할 때마다 회전각 계산
+    //////////////////////////////////////////////
     @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         rotation = getRotationCompensation();
+    }
+
+    //////////////////////////////////////////////
+    // 자동캡쳐를 위한 스레드와 핸들러
+    //////////////////////////////////////////////
+    class AutoCaptureThread extends Thread {
+        public AutoCaptureThread(String name) {
+            super(name);
+        }
+
+        @Override
+        public void run() {
+            super.run();
+            while (true) {
+                if (selectedEmotion == null && selectedPose == null) {
+                    if (!isAutoCaptureStart)
+                        return;
+
+                    try {
+                        lock.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+
+                else if (selectedEmotion != null) {
+                    FirebaseVisionFace detectedFace = faceDetector.getDetectedFace();
+                    if (detectedFace != null) {
+                        float smilingProbability = detectedFace.getSmilingProbability();
+
+                        if (smilingProbability >= 0.95f) {
+                            Message msg = autoCaptureHandler.obtainMessage();
+                            autoCaptureHandler.sendMessage(msg);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    static class AutoCaptureHandler extends Handler {
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            super.handleMessage(msg);
+            cameraView.capture();
+        }
+    }
+
+    private void startAutoCapture() {
+        isAutoCaptureStart = true;
+        autoCaptureThread = new AutoCaptureThread("AutoCaptureThread");
+        autoCaptureThread.start();
+    }
+
+    private void stopAutoCapture() {
+        isAutoCaptureStart = false;
+        if (autoCaptureThread != null) {
+            try {
+                autoCaptureThread.join(1000);
+                autoCaptureThread = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    //////////////////////////////////////////////
+    // 페이저 터치 이벤트로 포커스와 줌을 조절하기 위한 메소드
+    //////////////////////////////////////////////
+    public void setFocus(@NonNull ModeHelper helper) {
+        Handler handler = new Handler();
+        focusOval.setX(helper.getX());
+        focusOval.setY(helper.getY());
+        focusOval.setVisibility(helper.getVisibility());
+        cameraView.focus();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                focusOval.setVisibility(View.GONE);
+            }
+        }, 2000);
+    }
+
+    public void setZoom(@NonNull ModeHelper helper) {
+        switch (helper.getVisibility()) {
+            case View.VISIBLE:
+                zoomLayout.setVisibility(helper.getVisibility());
+                zoomSeekBar.setProgress(helper.getTouchZoom());
+                break;
+            case View.GONE:
+                Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        zoomLayout.setVisibility(View.GONE);
+                    }
+                }, 2000);
+                break;
+            default: break;
+        }
     }
 
     //////////////////////////////////////////////
@@ -449,24 +572,30 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         super.onActivityResult(requestCode, resultCode, data);
         switch (resultCode) {
             case RESULT_OK:
-                selectedItem = data.getParcelableExtra("item");
-                if (selectedItem != null) {
-                    switch (selectedItem.getMode()) {
+                ListItem item =  data.getParcelableExtra("item");
+                if (item != null) {
+                    switch (item.getMode()) {
                         case EMOTION:
+                            selectedEmotion = item;
                             modeItem1.setTextVisible(false);
-                            Toast.makeText(getApplicationContext(), "선택된 표정 : " + selectedItem.getItemName(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "선택된 표정 : " + selectedEmotion.getItemName(), Toast.LENGTH_SHORT).show();
                             selected = true;
                             pager.setCurrentItem(0);
+
+                            faceDetector.startDetector();
+                            startAutoCapture();
                             break;
                         case POSE:
+                            selectedPose = item;
                             modeItem3.setTextVisible(false);
-                            Toast.makeText(getApplicationContext(), "선택된 자세 : " + selectedItem.getItemName(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "선택된 자세 : " + selectedPose.getItemName(), Toast.LENGTH_SHORT).show();
                             selected = true;
                             pager.setCurrentItem(2);
                             break;
+                        default: break;
                     }
 
-                    selectedItemID = selectedItem.getItemID();
+                    selectedItemID = item.getItemID();
                 }
                 break;
             case RESULT_CANCELED:

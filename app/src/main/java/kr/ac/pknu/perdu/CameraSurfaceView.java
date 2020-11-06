@@ -7,6 +7,7 @@ import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Environment;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -43,6 +44,18 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     private CameraApiCallback cameraApiCallback;
     private GraphicOverlay overlay;
     private FaceDetector faceDetector;
+
+    public CameraSurfaceView(Context context) {
+        super(context);
+    }
+
+    public CameraSurfaceView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    public CameraSurfaceView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+    }
 
     public CameraSurfaceView(Context context, AppCompatActivity activity, int cameraID, SurfaceView sView, CameraApiCallback cameraApiCallback) {
         super(context);
