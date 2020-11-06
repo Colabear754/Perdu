@@ -26,7 +26,7 @@ import java.util.List;
 
 public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callback {
     private static final String TAG = "CameraSurfaceView";
-    static final int DEFAULT_PREVIEW_WIDTH = 1920, DEFAULT_PREVIEW_HEIGHT = 1080;
+    protected static final int DEFAULT_PREVIEW_WIDTH = 1920, DEFAULT_PREVIEW_HEIGHT = 1080;
     private static final int BUFFER_COUNT = 5;
 
     private int mCameraID;
