@@ -6,12 +6,9 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.viewpager.widget.ViewPager;
 
 import android.animation.ObjectAnimator;
-import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.hardware.Camera;
-import android.hardware.camera2.CameraAccessException;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
@@ -35,8 +32,6 @@ import android.widget.Toast;
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 import com.pedro.library.AutoPermissions;
 import com.pedro.library.AutoPermissionsListener;
-
-import java.util.Arrays;
 
 import kr.ac.pknu.perdu.adapter.AspectRatioSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.FlashSpinnerAdapter;
