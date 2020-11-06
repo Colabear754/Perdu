@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -14,6 +15,7 @@ import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class FaceDetector {
@@ -23,7 +25,7 @@ public class FaceDetector {
 
     private int previewWidth;
     private int previewHeight;
-    private byte[] date = null;
+    private byte[] data = null;
     private byte[] imageBuffer = null;
     private volatile boolean isStart = false;
 
@@ -42,8 +44,9 @@ public class FaceDetector {
     }
 
     private void init() {
-        previewWidth = 2960;
-        previewHeight = 1440;
+        previewWidth = CameraSurfaceView.DEFAULT_PREVIEW_WIDTH;
+        previewHeight = CameraSurfaceView.DEFAULT_PREVIEW_HEIGHT;
+        Log.i(TAG, "Width : " + previewWidth + ", Height : " + previewHeight);
         imageBuffer = new byte[previewWidth * previewHeight * 3 / 2];
         options = new FirebaseVisionFaceDetectorOptions.Builder()
                 .setPerformanceMode(FirebaseVisionFaceDetectorOptions.ACCURATE)
@@ -54,9 +57,9 @@ public class FaceDetector {
 
         metadata = new FirebaseVisionImageMetadata.Builder()
                 .setFormat(FirebaseVisionImageMetadata.IMAGE_FORMAT_NV21)
-                .setWidth(2960)
-                .setHeight(1440)
-                .setRotation(CameraSurfaceView.getPreviewRotation())
+                .setWidth(previewWidth)
+                .setHeight(previewHeight)
+                .setRotation(CameraPreviewActivity.rotation)
                 .build();
 
         detector = FirebaseVision.getInstance().getVisionFaceDetector(options);
@@ -92,11 +95,10 @@ public class FaceDetector {
     //////////////////////////////////////////////////
     // 카메라 데이터 수신 및 처리
     //////////////////////////////////////////////////
-
     public void receiveFrameData(byte[] bytes) {
         synchronized (lock) {
-            if (date == null) {
-                date = bytes;
+            if (data == null) {
+                data = bytes;
                 lock.notifyAll();
             }
         }
@@ -115,7 +117,7 @@ public class FaceDetector {
                     if (!isStart) {
                         return;
                     }
-                    if (date == null) {
+                    if (data == null) {
                         try {
                             lock.wait();
                         } catch (InterruptedException e) {
@@ -123,12 +125,11 @@ public class FaceDetector {
                             return;
                         }
                     }
-                    System.arraycopy(date, 0, imageBuffer, 0, date.length);
-                    date = null;
+                    System.arraycopy(data, 0, imageBuffer, 0, data.length);
+                    data = null;
                     visionImage = FirebaseVisionImage.fromByteArray(imageBuffer, metadata);
                 }
                 detector.detectInImage(visionImage).addOnSuccessListener(onSuccessListener).addOnFailureListener(onFailureListener);
-
             }
         }
     }

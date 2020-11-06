@@ -2,6 +2,8 @@ package kr.ac.pknu.perdu;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Environment;
@@ -24,23 +26,25 @@ import java.util.List;
 
 public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callback {
     private static final String TAG = "CameraSurfaceView";
+    static final int DEFAULT_PREVIEW_WIDTH = 1920, DEFAULT_PREVIEW_HEIGHT = 1080;
+    private static final int BUFFER_COUNT = 5;
 
     private int mCameraID;
     private SurfaceHolder surfaceHolder;
     private android.hardware.Camera camera = null;
-    private static Camera.CameraInfo cameraInfo;
-    public List<Camera.Size> previewSizesList;   // 미리보기 사이즈를 요소로 갖는 배열
-    public static Camera.Size previewSize;    // 미리보기 사이즈를 저장
-    private static int displayOrientation;
-    private static int rotationAngle;
+    private  Camera.CameraInfo cameraInfo;
+    private List<Camera.Size> previewSizesList;   // 미리보기 사이즈를 요소로 갖는 배열
+    private Camera.Size previewSize;    // 미리보기 사이즈를 저장
+    private int displayOrientation;
     private boolean isPreview = false;  // 미리보기가 실행 중인지 확인하는 변수
     private AppCompatActivity appCompatActivity;
 
     private Context context;
+    private CameraApiCallback cameraApiCallback;
     private GraphicOverlay overlay;
     private FaceDetector faceDetector;
 
-    public CameraSurfaceView(Context context, AppCompatActivity activity, int cameraID, SurfaceView sView) {
+    public CameraSurfaceView(Context context, AppCompatActivity activity, int cameraID, SurfaceView sView, CameraApiCallback cameraApiCallback) {
         super(context);
 
         this.context = context;
@@ -48,11 +52,11 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         mCameraID = cameraID;
         surfaceHolder = sView.getHolder();
         surfaceHolder.addCallback(this);
+        this.cameraApiCallback = cameraApiCallback;
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        // 카메라 열기를 시도하고 실패하면 에러로그 출력
         try {
             camera = Camera.open(mCameraID);
         } catch (Exception e) {
@@ -64,8 +68,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        // 프리뷰가 변경되거나 회전할 경우 동작
-        Camera.Parameters parameters = camera.getParameters();
+        int currentCamera = mCameraID;
         if (surfaceHolder == null) {
             Log.e(TAG, "프리뷰가 존재하지 않음");
             return;
@@ -78,18 +81,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
             Log.e(TAG, "프리뷰 중지 에러 : " + e.getMessage());
         }
 
-        setRotation(cameraInfo, displayOrientation, parameters);
-        camera.setParameters(parameters);
-
-        try {
-            camera.setPreviewDisplay(surfaceHolder);
-            camera.startPreview();
-            faceDetector.startDetector();
-            //startFaceDetection();
-            Log.d(TAG, "미리보기 재개");
-        } catch (Exception e) {
-            Log.e(TAG, "프리뷰 시작 에러 : " + e.getMessage());
-        }
+        startPreview(currentCamera);
     }
 
     @Override
@@ -195,14 +187,18 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         } else
             result = (info.orientation - degrees + 360) % 360;
 
-        rotationAngle = result;
-
         camera.setDisplayOrientation(result);
-        parameters.setRotation(result);
+
+        if (mCameraID == Camera.CameraInfo.CAMERA_FACING_FRONT)
+            parameters.setRotation(result + 180);
+        else
+            parameters.setRotation(result);
     }
 
+    //////////////////////////////////////////////
+    // 사진을 촬영하고 파일로 저장
+    //////////////////////////////////////////////
     public void capture() {
-        // 사진 촬영
         if (camera != null)
             camera.takePicture(null, null, pngCallback);
     }
@@ -226,13 +222,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
                 Log.e(TAG, "파일에 접근할 수 없음 : " + e.getMessage());
             }
 
-            try {
-                camera.setPreviewDisplay(surfaceHolder);
-                camera.startPreview();
-                Log.d(TAG, "카메라 미리보기 시작.");
-            } catch (Exception e) {
-                Log.d(TAG, "카메라 미리보기 시작 오류." + e.getMessage());
-            }
+            startPreview(mCameraID);
 
             // 갤러리에 반영
             Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
@@ -258,13 +248,16 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         return image;
     }
 
+    //////////////////////////////////////////////
+    // 전/후면 카메라 전환
+    //////////////////////////////////////////////
     public void changeCamera(int cameraID) {
-        // 전/후면 카메라를 전환하는 메소드
         // 기존 카메라 프리뷰를 종료하고 카메라를 반환
         finishPreview();
+        mCameraID = cameraID;
         // 전환된 카메라를 새로 열고 프리뷰 시작
         try {
-            camera = Camera.open(cameraID);
+            camera = Camera.open(mCameraID);
         } catch (Exception e) {
             Log.e(TAG, "카메라" + cameraID + "사용 불가." + e.getMessage());
         }
@@ -272,12 +265,18 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         startPreview(cameraID);
     }
 
+    //////////////////////////////////////////////
+    // 플래시 설정
+    //////////////////////////////////////////////
     public void flashControl(String flashMode) {
         Camera.Parameters parameters = camera.getParameters();
         parameters.setFlashMode(flashMode);
         camera.setParameters(parameters);
     }
 
+    //////////////////////////////////////////////
+    // 포커스
+    //////////////////////////////////////////////
     public void focus() {
         camera.autoFocus(new Camera.AutoFocusCallback() {
             @Override
@@ -285,6 +284,9 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         });
     }
 
+    //////////////////////////////////////////////
+    // 줌 관련
+    //////////////////////////////////////////////
     public int getMaxZoom() {
         Camera.Parameters parameters = camera.getParameters();
         return parameters.getMaxZoom();
@@ -296,6 +298,9 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         camera.setParameters(parameters);
     }
 
+    //////////////////////////////////////////////
+    // 프리뷰 시작
+    //////////////////////////////////////////////
     private void startPreview(int cameraID) {
         overlay = ((CameraPreviewActivity) context).overlay;
         // 카메라 ID를 매개변수로 받아 프리뷰를 생성
@@ -306,12 +311,17 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         displayOrientation = appCompatActivity.getWindowManager().getDefaultDisplay().getRotation();
 
         Camera.Parameters parameters = camera.getParameters();
+        parameters.setPreviewFormat(ImageFormat.NV21);
+        parameters.setPreviewSize(DEFAULT_PREVIEW_WIDTH, DEFAULT_PREVIEW_HEIGHT);
         parameters.setPreviewFpsRange(30000, 30000);
         setRotation(cameraInfo, displayOrientation, parameters);
         List<String> focusModes = parameters.getSupportedFocusModes();
         if (focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO))
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
         camera.setParameters(parameters);
+
+        for (int i = 0; i < BUFFER_COUNT; i++)
+            camera.addCallbackBuffer(new byte[DEFAULT_PREVIEW_WIDTH * DEFAULT_PREVIEW_HEIGHT * 3 / 2]);
 
         try {
             camera.setPreviewDisplay(surfaceHolder);
@@ -320,18 +330,28 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
             faceDetector.setOverlay(overlay);
             faceDetector.startDetector();
             Log.i(TAG, (cameraID == 0 ? "후면 " : "전면 ") + "카메라 미리보기 시작.");
+            camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
+                @Override
+                public void onPreviewFrame(byte[] data, Camera camera) {
+                    if (camera != null)
+                        cameraApiCallback.onPreviewFrameCallback(data, camera);
+                }
+            });
             isPreview = true;
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    //////////////////////////////////////////////
+    // 프리뷰를 종료하고 카메라를 반환
+    //////////////////////////////////////////////
     private void finishPreview() {
-        // 프리뷰를 종료하고 카메라를 반환하는 메소드
         if (camera != null) {
             if (isPreview) {
                 faceDetector.stopDetector();
                 camera.stopPreview();
+                Log.i(TAG, "프리뷰 중지");
             }
             camera.setPreviewCallback(null);
             camera.release();
@@ -340,26 +360,11 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         }
     }
 
-    public static int getPreviewRotation() {
-        return rotationAngle / 90;
-    }
-
-/*
-    public void startFaceDetection() {
-        // 얼굴 인식 시도 메소드
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
         Camera.Parameters parameters = camera.getParameters();
-        // 프리뷰가 시작된 이후에만 얼굴 인식 시도
-        if (parameters.getMaxNumDetectedFaces() > 0)
-            camera.startFaceDetection();
+        setRotation(cameraInfo, displayOrientation, parameters);
+        camera.setParameters(parameters);
     }
-
-    class FaceDetector implements Camera.FaceDetectionListener {
-        // 얼굴 인식 리스너
-        @Override
-        public void onFaceDetection(Camera.Face[] faces, Camera camera) {
-            if (faces.length > 0) {
-                Log.d(TAG, "얼굴 탐지됨 : " + faces.length + ", 얼굴 위치 X : " + faces[0].rect.centerX() + ", Y : " + faces[0].rect.centerY());
-            }
-        }
-    }*/
 }

@@ -6,12 +6,19 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.viewpager.widget.ViewPager;
 
 import android.animation.ObjectAnimator;
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.hardware.Camera;
+import android.hardware.camera2.CameraAccessException;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
+import android.util.Log;
+import android.util.SparseIntArray;
 import android.view.Gravity;
+import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.animation.Animation;
@@ -25,8 +32,11 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 import com.pedro.library.AutoPermissions;
 import com.pedro.library.AutoPermissionsListener;
+
+import java.util.Arrays;
 
 import kr.ac.pknu.perdu.adapter.AspectRatioSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.FlashSpinnerAdapter;
@@ -36,7 +46,8 @@ import kr.ac.pknu.perdu.mode.ModeItem1;
 import kr.ac.pknu.perdu.mode.ModeItem2;
 import kr.ac.pknu.perdu.mode.ModeItem3;
 
-public class CameraPreviewActivity extends AppCompatActivity implements AutoPermissionsListener {
+public class CameraPreviewActivity extends AppCompatActivity implements AutoPermissionsListener, CameraApiCallback {
+    private static final String TAG = "Perdu";
     public static CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
     SurfaceView surfaceView;    // 미리보기를 표시하기 위한 서피스뷰
     // UI 변수들
@@ -58,6 +69,8 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     static LinearLayout zoomLayout;    // 줌 관련 내용을 보여주기 위한 레이아웃
     static int cameraFacing;    // 카메라 전환 변수
     private boolean selected;   // 설정에서 아이템이 선택되어 모드가 변경되었는지 확인하기 위한 논리 변수
+    private ListItem selectedItem;  // 선택된 아이템
+    protected static int rotation;
 
     private static final int setting = 1001;
     private static final int emotionSelect = 1002;
@@ -69,7 +82,13 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     public GraphicOverlay overlay;
     private FaceDetector faceDetector;
 
-    private int width, height;
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 90);
+        ORIENTATIONS.append(Surface.ROTATION_90, 0);
+        ORIENTATIONS.append(Surface.ROTATION_180,270);
+        ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,7 +102,9 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         overlay = findViewById(R.id.graphicOverlay);
         startCamera();  // 미리보기 시작
 
+        //////////////////////////////////////////////
         // 여기부터 상단 버튼을 위한 스피너 코드
+        //////////////////////////////////////////////
         menuLayout = findViewById(R.id.menuLayout);
         Spinner flashSpinner = findViewById(R.id.flashSpinner);
         Spinner aspectRatioSpinner = findViewById(R.id.aspectratioSpinner);
@@ -116,7 +137,9 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         });
         aspectRatioSpinner.setAdapter(aspectRatioSpinnerAdapter);
 
+        //////////////////////////////////////////////
         // 여기부터 모드 변경을 위한 뷰페이저 코드
+        //////////////////////////////////////////////
         pager = findViewById(R.id.modePager);
         pager.setOffscreenPageLimit(3);
         ModePagerAdapter adapter = new ModePagerAdapter(getSupportFragmentManager());
@@ -127,7 +150,9 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         pager.setCurrentItem(1);
         pager.bringToFront();
 
-        // 여기부터 글자 클릭으로 모드 변경을 하기 위한 코드
+        //////////////////////////////////////////////
+        // 여기부터 텍스트를 터치하여 모드 변경을 하기 위한 코드
+        //////////////////////////////////////////////
         emotion = findViewById(R.id.emtion);
         normal = findViewById(R.id.normal);
         pose = findViewById(R.id.pose);
@@ -159,7 +184,9 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
             }
         });
 
+        //////////////////////////////////////////////
         // 여기부터 모드 변경에 따른 UI 변경에 대한 코드
+        //////////////////////////////////////////////
         pager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             int prePosition = 1;    // 이전 페이지를 나타내기 위한 변수
 
@@ -198,9 +225,10 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                         else
                             selected = false;
 
-                        //faceDetector.startDetector();
+                        faceDetector.startDetector();
                         break;
                     case 1:
+                        selectedItem = null;
                         decrease = new ScaleAnimation(scale, 1, 1, 1, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                         decrease.setDuration(200);
                         decrease.setFillAfter(true);
@@ -208,10 +236,11 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                         trans_anim = ObjectAnimator.ofFloat(modeLayout, "translationX", 0f);
                         trans_anim.start();
 
-                        //faceDetector.stopDetector();
+                        faceDetector.stopDetector();
                         break;
                     case 2:
                         if (prePosition == 1) {
+                            selectedItem = null;
                             increase = new ScaleAnimation(1, scale, 1, 1, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                             increase.setDuration(200);
                             increase.setFillAfter(true);
@@ -232,7 +261,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                         else
                             selected = false;
 
-                        //faceDetector.stopDetector();
+                        faceDetector.stopDetector();
                         break;
                     default:
                         break;
@@ -244,7 +273,9 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
             public void onPageScrollStateChanged(int state) {}
         });
 
+        //////////////////////////////////////////////
         // 줌 관련 코드
+        //////////////////////////////////////////////
         zoomSeekBar = findViewById(R.id.zoomSeekBar);
         zoomTextView = findViewById(R.id.zoomTextView);
         zoomLayout = findViewById(R.id.zoomLayout);
@@ -278,35 +309,36 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     @Override
     protected void onStop() {
         super.onStop();
-        //faceDetector.stopDetector();
+        faceDetector.stopDetector();
     }
 
     void startCamera() {
         // 서피스뷰 객체를 생성하여 카메라 미리보기 시작
-        cameraView = new CameraSurfaceView(this, this, cameraFacing, surfaceView);
+        cameraView = new CameraSurfaceView(this, this, cameraFacing, surfaceView, this);
 
-        //faceDetector = new FaceDetector(this);
-        //faceDetector.setOverlay(overlay);
-        /*
-        width = cameraView.getWidth();
-        height = cameraView.getHeight();
-        */
+        faceDetector = new FaceDetector(this);
+        faceDetector.setOverlay(overlay);
     }
 
+    @Override
     public void onPreviewFrameCallback(byte[] data, Camera camera) {
         camera.addCallbackBuffer(data);
-        //faceDetector.receiveFrameData(data);
+        faceDetector.receiveFrameData(data);
     }
 
-    public int getPreviewWidth() {
-        return width;
+    @Override
+    public void onNotSupportErrorTip(String message) {
+
     }
 
-    public int getPreviewHeight() {
-        return height;
+    @Override
+    public void onCameraInit(Camera camera) {
+
     }
 
+    //////////////////////////////////////////////
     // 여기부터 권한 요청 메소드 3개
+    //////////////////////////////////////////////
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResult) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResult);
         AutoPermissions.Companion.parsePermissions(this, requestCode, permissions, this);
@@ -317,10 +349,11 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
 
     public void onGranted(int i, @NonNull String[] strings) {
     }
-    // 여기 까지 권한 요청 메소드 3개
 
+    //////////////////////////////////////////////
+    // 플래시 설정을 변경할 때 나오는 토스트 메시지
+    //////////////////////////////////////////////
     private void flashToastShow(String flashMode) {
-        // 플래시 설정을 변경할 때 나오는 토스트 메시지
         final Toast toastView = Toast.makeText(getApplicationContext(), "플래시 : " + flashMode, Toast.LENGTH_SHORT);
         toastView.setGravity(Gravity.CENTER_HORIZONTAL|Gravity.TOP, 0, menuLayout.getHeight() + 30);
         toastView.show();
@@ -333,20 +366,23 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         }, 1000);
     }
 
+    //////////////////////////////////////////////
+    // 설정창 팝업 메소드
+    //////////////////////////////////////////////
     private void popupSelectItem(int requestCode) {
-        // 설정창 팝업 메소드
         Intent intent = new Intent(getApplicationContext(), SettingActivity.class);
         intent.putExtra("mode", requestCode);
         startActivityForResult(intent, requestCode);
     }
 
+    //////////////////////////////////////////////
+    // 버튼 터치 메소드들
+    //////////////////////////////////////////////
     public void onCaptureButton(View v) {
-        // 촬영 버튼 터치 메소드
         cameraView.capture();
     }
 
     public void onGalleryButton(View v) {
-        // 갤러리 버튼 터치 메소드
         Animation anim = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.gallery_scale);
         v.startAnimation(anim);
         Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -355,7 +391,6 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     }
 
     public void onChangeFacingButton(View v) {
-        // 카메라 전환 버튼 터치 메소드
         Animation anim = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.selfie_rotate);
         v.startAnimation(anim);
         cameraFacing = (cameraFacing == Camera.CameraInfo.CAMERA_FACING_BACK) ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK;   // 현재 카메라의 상태에 따라 전면 또는 후면으로 전환
@@ -363,7 +398,6 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     }
 
     public void onSettingButton(View v) {
-        // 설정 버튼 터치 메소드
         // 현재 페이지에 따라서 요청코드가 달라짐
         switch (pager.getCurrentItem()) {
             case 0:
@@ -379,31 +413,65 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         }
     }
 
+    private int getRotationCompensation() {
+        int deviceRotation = this.getWindowManager().getDefaultDisplay().getRotation();
+        int rotationCompensation = ORIENTATIONS.get(deviceRotation);
+
+        rotationCompensation = (rotationCompensation + 270) % 360;
+        int result;
+        switch (rotationCompensation) {
+            case 0:
+                result = FirebaseVisionImageMetadata.ROTATION_0;
+                break;
+            case 90:
+                result = FirebaseVisionImageMetadata.ROTATION_90;
+                break;
+            case 180:
+                result = FirebaseVisionImageMetadata.ROTATION_180;
+                break;
+            case 270:
+                result = FirebaseVisionImageMetadata.ROTATION_270;
+                break;
+            default:
+                result = FirebaseVisionImageMetadata.ROTATION_0;
+                Log.e(TAG, "Bad rotation value: " + rotationCompensation);
+        }
+
+        return result;
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        rotation = getRotationCompensation();
+    }
+
+    //////////////////////////////////////////////
+    // 설정 버튼에서 선택한 아이템의 객체를 받아와 그에 따른 결과 수행
+    //////////////////////////////////////////////
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @NonNull Intent data) {
-        // 설정 버튼에서 선택한 아이템의 객체를 받아와 그에 따른 결과 수행
         super.onActivityResult(requestCode, resultCode, data);
-
         switch (resultCode) {
             case RESULT_OK:
-                ListItem item = data.getParcelableExtra("item");
-                if (item != null) {
-                    switch (item.getMode()) {
+                selectedItem = data.getParcelableExtra("item");
+                if (selectedItem != null) {
+                    switch (selectedItem.getMode()) {
                         case EMOTION:
                             modeItem1.setTextVisible(false);
-                            Toast.makeText(getApplicationContext(), "선택된 표정 : " + item.getItemName(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "선택된 표정 : " + selectedItem.getItemName(), Toast.LENGTH_SHORT).show();
                             selected = true;
                             pager.setCurrentItem(0);
                             break;
                         case POSE:
                             modeItem3.setTextVisible(false);
-                            Toast.makeText(getApplicationContext(), "선택된 자세 : " + item.getItemName(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "선택된 자세 : " + selectedItem.getItemName(), Toast.LENGTH_SHORT).show();
                             selected = true;
                             pager.setCurrentItem(2);
                             break;
                     }
 
-                    selectedItemID = item.getItemID();
+                    selectedItemID = selectedItem.getItemID();
                 }
                 break;
             case RESULT_CANCELED:
