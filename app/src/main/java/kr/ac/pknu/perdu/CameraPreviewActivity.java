@@ -35,6 +35,8 @@ import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.pedro.library.AutoPermissions;
 import com.pedro.library.AutoPermissionsListener;
 
+import java.io.IOException;
+
 import kr.ac.pknu.perdu.adapter.AspectRatioSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.FlashSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.ModePagerAdapter;
@@ -52,8 +54,8 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     private static final int EMOTION = 100001;
     private static final int POSE = 200001;
 
-    protected static CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
-    SurfaceView surfaceView;    // 미리보기를 표시하기 위한 서피스뷰
+    private CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
+    private SurfaceView surfaceView;    // 미리보기를 표시하기 위한 서피스뷰
 
     private final int[] flashIcons = {R.drawable.flash_auto_icon, R.drawable.flash_on_icon, R.drawable.flash_off_icon};    // 플래시 아이콘
     private final String[] aspectRatioIcons = {"3 : 4", "9 : 16", "1 : 1"}; // 화면 비율 아이콘
@@ -78,6 +80,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     protected static int cameraFacing;    // 카메라 전환 변수
     private boolean selected;   // 설정에서 아이템이 선택되어 모드가 변경되었는지 확인하기 위한 논리 변수
     private boolean isAutoCaptureStart; // 자동 캡쳐가 시작되었는지 확인하기 위한 논리 변수
+    private boolean inCaptureProgress = false;
 
     private ListItem selectedEmotion;  // 선택된 표정
     private ListItem selectedPose;  // 선택된 자세
@@ -86,7 +89,6 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     private final byte[] lock = new byte[]{0};
 
     private AutoCaptureThread autoCaptureThread = null;
-    private AutoCaptureHandler autoCaptureHandler;
 
     private int selectedItemID = -1;
 
@@ -109,8 +111,6 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
 
         AutoPermissions.Companion.loadAllPermissions(this, 101);    // 자동 권한 요청
         cameraFacing = Camera.CameraInfo.CAMERA_FACING_BACK;    // 후면 카메라를 기본 카메라로 설정
-
-        autoCaptureHandler = new AutoCaptureHandler();
 
         overlay = findViewById(R.id.graphicOverlay);
         startCamera();  // 미리보기 시작
@@ -243,6 +243,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                         faceDetector.stopDetector();
                         selectedEmotion = null;
                         selectedPose = null;
+                        selected = false;
                         decrease = new ScaleAnimation(scale, 1, 1, 1, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
                         decrease.setDuration(200);
                         decrease.setFillAfter(true);
@@ -324,6 +325,15 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         faceDetector.stopDetector();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (selectedEmotion != null || selectedPose != null) {
+            faceDetector.startDetector();
+            startAutoCapture();
+        }
+    }
+
     //////////////////////////////////////////////
     // 서피스뷰 객체를 생성하여 카메라 미리보기 시작
     //////////////////////////////////////////////
@@ -393,7 +403,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     // 버튼 터치 메소드들
     //////////////////////////////////////////////
     public void onCaptureButton(View v) {
-        cameraView.capture();
+        cameraCapture();
     }
 
     public void onGalleryButton(View v) {
@@ -427,6 +437,17 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         }
     }
 
+    public void cameraCapture() {
+        if (!inCaptureProgress) {
+            inCaptureProgress = true;
+            cameraView.capture();
+        }
+        inCaptureProgress = false;
+    }
+
+    //////////////////////////////////////////////
+    // 얼굴 탐지를 위한 회전각
+    //////////////////////////////////////////////
     private int getRotationCompensation() {
         int deviceRotation = this.getWindowManager().getDefaultDisplay().getRotation();
         int rotationCompensation = ORIENTATIONS.get(deviceRotation);
@@ -475,38 +496,34 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         public void run() {
             super.run();
             while (true) {
-                if (selectedEmotion == null && selectedPose == null) {
-                    if (!isAutoCaptureStart)
-                        return;
+                synchronized (lock) {
+                    if (selectedEmotion == null && selectedPose == null) {
+                        if (!isAutoCaptureStart)
+                            return;
 
-                    try {
-                        lock.wait();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        return;
-                    }
-                }
+                        try {
+                            lock.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            return;
+                        }
+                    } else if (selectedEmotion != null) {
+                        FirebaseVisionFace detectedFace = faceDetector.getDetectedFace();
+                        if (detectedFace != null) {
+                            float smilingProbability = detectedFace.getSmilingProbability();
 
-                else if (selectedEmotion != null) {
-                    FirebaseVisionFace detectedFace = faceDetector.getDetectedFace();
-                    if (detectedFace != null) {
-                        float smilingProbability = detectedFace.getSmilingProbability();
-
-                        if (smilingProbability >= 0.95f) {
-                            Message msg = autoCaptureHandler.obtainMessage();
-                            autoCaptureHandler.sendMessage(msg);
+                            if (smilingProbability > 0.95f) {
+                                try {
+                                    cameraView.capture();
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
-    }
-
-    static class AutoCaptureHandler extends Handler {
-        @Override
-        public void handleMessage(@NonNull Message msg) {
-            super.handleMessage(msg);
-            cameraView.capture();
         }
     }
 
@@ -600,11 +617,15 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                 break;
             case RESULT_CANCELED:
                 if (requestCode == emotionSelect && selectedItemID == -1) {
+                    faceDetector.stopDetector();
+                    selectedPose = null;
                     modeItem1.setTextVisible(true);
                     modeItem1.setTextView("표정이 선택되지 않았습니다.", 0xFFEE0000);
                 }
 
                 else if (requestCode == poseSelect && selectedItemID == -1) {
+                    faceDetector.stopDetector();
+                    selectedPose = null;
                     modeItem3.setTextVisible(true);
                     modeItem3.setTextView("자세가 선택되지 않았습니다.", 0xFFEE0000);
                 }
