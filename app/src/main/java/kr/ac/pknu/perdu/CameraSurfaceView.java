@@ -40,10 +40,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     private boolean isPreview = false;  // 미리보기가 실행 중인지 확인하는 변수
     private AppCompatActivity appCompatActivity;
 
-    private Context context;
     private CameraApiCallback cameraApiCallback;
-    private GraphicOverlay overlay;
-    private FaceDetector faceDetector;
 
     public CameraSurfaceView(Context context) {
         super(context);
@@ -60,7 +57,6 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     public CameraSurfaceView(Context context, AppCompatActivity activity, int cameraID, SurfaceView sView, CameraApiCallback cameraApiCallback) {
         super(context);
 
-        this.context = context;
         appCompatActivity = activity;
         mCameraID = cameraID;
         surfaceHolder = sView.getHolder();
@@ -135,6 +131,14 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
                 child.layout(0, (height - scaledChildHeight) / 2, width, (height + scaledChildHeight) / 2);
             }
         }
+    }
+
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        Camera.Parameters parameters = camera.getParameters();
+        setRotation(cameraInfo, displayOrientation, parameters);
+        camera.setParameters(parameters);
     }
 
     private Camera.Size getPreviewSize(List<Camera.Size> sizes, int width, int height) {
@@ -212,8 +216,9 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     // 사진을 촬영하고 파일로 저장
     //////////////////////////////////////////////
     public void capture() {
-        if (camera != null)
+        if (camera != null) {
             camera.takePicture(null, null, pngCallback);
+        }
     }
 
     Camera.PictureCallback pngCallback = new Camera.PictureCallback() {
@@ -315,7 +320,6 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     // 프리뷰 시작
     //////////////////////////////////////////////
     private void startPreview(int cameraID) {
-        overlay = ((CameraPreviewActivity) context).overlay;
         // 카메라 ID를 매개변수로 받아 프리뷰를 생성
         Camera.CameraInfo info = new Camera.CameraInfo();
         Camera.getCameraInfo(cameraID, info);
@@ -339,9 +343,6 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         try {
             camera.setPreviewDisplay(surfaceHolder);
             camera.startPreview();
-            faceDetector = new FaceDetector(context);
-            faceDetector.setOverlay(overlay);
-            faceDetector.startDetector();
             Log.i(TAG, (cameraID == 0 ? "후면 " : "전면 ") + "카메라 미리보기 시작.");
             camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
                 @Override
@@ -362,7 +363,6 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     private void finishPreview() {
         if (camera != null) {
             if (isPreview) {
-                faceDetector.stopDetector();
                 camera.stopPreview();
                 Log.i(TAG, "프리뷰 중지");
             }
@@ -371,13 +371,5 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
             camera = null;
             isPreview = false;
         }
-    }
-
-    @Override
-    protected void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        Camera.Parameters parameters = camera.getParameters();
-        setRotation(cameraInfo, displayOrientation, parameters);
-        camera.setParameters(parameters);
     }
 }
