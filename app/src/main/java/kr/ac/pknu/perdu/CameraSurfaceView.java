@@ -38,6 +38,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     private Camera.Size previewSize;    // 미리보기 사이즈를 저장
     private int displayOrientation;
     private boolean isPreview = false;  // 미리보기가 실행 중인지 확인하는 변수
+    private boolean isCapture = false;
     private AppCompatActivity appCompatActivity;
 
     private CameraApiCallback cameraApiCallback;
@@ -216,7 +217,8 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
     // 사진을 촬영하고 파일로 저장
     //////////////////////////////////////////////
     public void capture() {
-        if (camera != null) {
+        if (camera != null && !isCapture) {
+            isCapture = true;
             camera.takePicture(null, null, pngCallback);
         }
     }
@@ -246,6 +248,8 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
             Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
             mediaScanIntent.setData(Uri.fromFile(picture));
             getContext().sendBroadcast(mediaScanIntent);
+
+            isCapture = false;
         }
     };
 
@@ -262,7 +266,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         File image = new File(path.getPath() + File.separator + "Perdu_" + timeStamp + ".png");
 
-        Log.i("Perdu", "사진 촬영 : " + path.toString() + "/" + image.toString());
+        Log.d("Perdu", "사진 촬영 : " + path.toString() + "/" + image.toString());
         return image;
     }
 
@@ -337,13 +341,14 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
         camera.setParameters(parameters);
 
-        for (int i = 0; i < BUFFER_COUNT; i++)
-            camera.addCallbackBuffer(new byte[DEFAULT_PREVIEW_WIDTH * DEFAULT_PREVIEW_HEIGHT * 3 / 2]);
+        if (!isCapture)
+            for (int i = 0; i < BUFFER_COUNT; i++)
+                camera.addCallbackBuffer(new byte[DEFAULT_PREVIEW_WIDTH * DEFAULT_PREVIEW_HEIGHT * 3 / 2]);
 
         try {
             camera.setPreviewDisplay(surfaceHolder);
             camera.startPreview();
-            Log.i(TAG, (cameraID == 0 ? "후면 " : "전면 ") + "카메라 미리보기 시작.");
+            Log.d(TAG, (cameraID == 0 ? "후면 " : "전면 ") + "카메라 미리보기 시작.");
             camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
                 @Override
                 public void onPreviewFrame(byte[] data, Camera camera) {
@@ -364,7 +369,7 @@ public class CameraSurfaceView extends ViewGroup implements SurfaceHolder.Callba
         if (camera != null) {
             if (isPreview) {
                 camera.stopPreview();
-                Log.i(TAG, "프리뷰 중지");
+                Log.d(TAG, "프리뷰 중지");
             }
             camera.setPreviewCallback(null);
             camera.release();

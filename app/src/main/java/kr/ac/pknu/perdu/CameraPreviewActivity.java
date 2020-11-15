@@ -11,7 +11,6 @@ import android.content.res.Configuration;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.util.SparseIntArray;
@@ -35,7 +34,8 @@ import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.pedro.library.AutoPermissions;
 import com.pedro.library.AutoPermissionsListener;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import kr.ac.pknu.perdu.adapter.AspectRatioSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.FlashSpinnerAdapter;
@@ -48,11 +48,20 @@ import kr.ac.pknu.perdu.mode.ModeItem3;
 
 public class CameraPreviewActivity extends AppCompatActivity implements AutoPermissionsListener, CameraApiCallback {
     private static final String TAG = "Perdu";
-    private static final int setting = 1001;
-    private static final int emotionSelect = 1002;
-    private static final int poseSelect = 1003;
+    private static final int REQUEST_SETTING = 1001;
+    private static final int REQUEST_EMOTION_SELECT = 1002;
+    private static final int REQUEST_POSE_SELECT = 1003;
     private static final int EMOTION = 100001;
+    private static final int EMOTION_ITEM1 = 100001101; // 웃는 표정
+    private static final int EMOTION_ITEM2 = 100001102; // 윙크
+    private static final int EMOTION_ITEM3 = 100001103; // 놀람
+    private static final int EMOTION_ITEM4 = 100001104; // 메롱
     private static final int POSE = 200001;
+    private static final int POSE_ITEM1 = 200001101;
+    private static final int POSE_ITEM2 = 200001102;
+    private static final int POSE_ITEM3 = 200001103;
+    private static final int POSE_ITEM4 = 200001104;
+
 
     private CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
     private SurfaceView surfaceView;    // 미리보기를 표시하기 위한 서피스뷰
@@ -86,7 +95,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     private ListItem selectedPose;  // 선택된 자세
     protected static int rotation;
 
-    private final byte[] lock = new byte[]{0};
+    private final byte[] autoCaptureLock = new byte[]{0};
 
     private AutoCaptureThread autoCaptureThread = null;
 
@@ -231,7 +240,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                             handler.postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
-                                    popupSelectItem(emotionSelect);
+                                    popupSelectItem(REQUEST_EMOTION_SELECT);
                                 }
                             }, 500);
                         }
@@ -240,7 +249,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                         break;
                     case 1:
                         stopAutoCapture();
-                        faceDetector.stopDetector();
+                        faceDetector.stopDetecting();
                         selectedEmotion = null;
                         selectedPose = null;
                         selected = false;
@@ -259,7 +268,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                             selectedMode.startAnimation(increase);
                         }
                         stopAutoCapture();
-                        faceDetector.stopDetector();
+                        faceDetector.stopDetecting();
                         selectedEmotion = null;
                         trans_anim = ObjectAnimator.ofFloat(modeLayout, "translationX", -trans);
                         trans_anim.setDuration(200);
@@ -269,7 +278,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                             handler.postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
-                                    popupSelectItem(poseSelect);
+                                    popupSelectItem(REQUEST_POSE_SELECT);
                                 }
                             }, 500);
                         }
@@ -322,14 +331,14 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     @Override
     protected void onStop() {
         super.onStop();
-        faceDetector.stopDetector();
+        faceDetector.stopDetecting();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         if (selectedEmotion != null || selectedPose != null) {
-            faceDetector.startDetector();
+            faceDetector.startDetecting();
             startAutoCapture();
         }
     }
@@ -417,21 +426,28 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     public void onChangeFacingButton(View v) {
         Animation anim = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.selfie_rotate);
         v.startAnimation(anim);
-        cameraFacing = (cameraFacing == Camera.CameraInfo.CAMERA_FACING_BACK) ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK;   // 현재 카메라의 상태에 따라 전면 또는 후면으로 전환
-        cameraView.changeCamera(cameraFacing);
+
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                cameraFacing = (cameraFacing == Camera.CameraInfo.CAMERA_FACING_BACK) ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK;   // 현재 카메라의 상태에 따라 전면 또는 후면으로 전환
+                cameraView.changeCamera(cameraFacing);
+            }
+        }, 500);
     }
 
     public void onSettingButton(View v) {
         // 현재 페이지에 따라서 요청코드가 달라짐
         switch (pager.getCurrentItem()) {
             case 0:
-                popupSelectItem(emotionSelect);
+                popupSelectItem(REQUEST_EMOTION_SELECT);
                 break;
             case 1:
-                popupSelectItem(setting);
+                popupSelectItem(REQUEST_SETTING);
                 break;
             case 2:
-                popupSelectItem(poseSelect);
+                popupSelectItem(REQUEST_POSE_SELECT);
                 break;
             default: break;
         }
@@ -442,7 +458,6 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
             inCaptureProgress = true;
             cameraView.capture();
         }
-        inCaptureProgress = false;
     }
 
     //////////////////////////////////////////////
@@ -485,7 +500,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     }
 
     //////////////////////////////////////////////
-    // 자동캡쳐를 위한 스레드와 핸들러
+    // 자동캡쳐를 위한 스레드
     //////////////////////////////////////////////
     class AutoCaptureThread extends Thread {
         public AutoCaptureThread(String name) {
@@ -496,13 +511,13 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         public void run() {
             super.run();
             while (true) {
-                synchronized (lock) {
+                synchronized (autoCaptureLock) {
                     if (selectedEmotion == null && selectedPose == null) {
                         if (!isAutoCaptureStart)
                             return;
 
                         try {
-                            lock.wait();
+                            autoCaptureLock.wait();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                             return;
@@ -510,18 +525,27 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                     } else if (selectedEmotion != null) {
                         FirebaseVisionFace detectedFace = faceDetector.getDetectedFace();
                         if (detectedFace != null) {
-                            float smilingProbability = detectedFace.getSmilingProbability();
+                            if (checkEmotion(detectedFace, selectedItemID)) {
+                                faceDetector.stopDetecting();
 
-                            if (smilingProbability > 0.95f) {
                                 try {
-                                    cameraView.capture();
+                                    cameraCapture();
                                 } catch (Exception e) {
                                     e.printStackTrace();
-                                    break;
                                 }
+
+                                faceDetector.startDetecting();
+
+                                inCaptureProgress = false;
                             }
                         }
                     }
+                }
+
+                try {
+                    sleep(300);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -581,6 +605,17 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         }
     }
 
+    private boolean checkEmotion(FirebaseVisionFace face, int item) {
+        switch (item) {
+            case EMOTION_ITEM1:
+                return face.getSmilingProbability() >= 0.85f;
+            case EMOTION_ITEM2:
+                return (face.getLeftEyeOpenProbability() <= 0.2f && face.getRightEyeOpenProbability() > 0.5f) || (face.getRightEyeOpenProbability() <= 0.2f && face.getLeftEyeOpenProbability() > 0.5f);
+            default:
+                return false;
+        }
+    }
+
     //////////////////////////////////////////////
     // 설정 버튼에서 선택한 아이템의 객체를 받아와 그에 따른 결과 수행
     //////////////////////////////////////////////
@@ -595,39 +630,62 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
                         case EMOTION:
                             selectedEmotion = item;
                             modeItem1.setTextVisible(false);
-                            Toast.makeText(getApplicationContext(), "선택된 표정 : " + selectedEmotion.getItemName(), Toast.LENGTH_SHORT).show();
                             selected = true;
                             pager.setCurrentItem(0);
 
-                            faceDetector.startDetector();
+                            switch (item.getItemID()) {
+                                case 101:
+                                    modeItem1.setTextView("현재 선택된 표정은 웃는 표정입니다.", 0xFF00EE00);
+                                    modeItem1.setTextVisible(true);
+                                    break;
+                                case 102:
+                                    modeItem1.setTextView("현재 선택된 표정은 윙크입니다.", 0xFF00EE00);
+                                    modeItem1.setTextVisible(true);
+                                    break;
+                                case 103:
+                                    modeItem1.setTextView("현재 선택된 표정은 놀란 표정입니다.", 0xFF00EE00);
+                                    modeItem1.setTextVisible(true);
+                                    break;
+                                case 104:
+                                    modeItem1.setTextView("현재 선택된 표정은 메롱입니다.", 0xFF00EE00);
+                                    modeItem1.setTextVisible(true);
+                                    break;
+                                default:
+                                    modeItem1.setTextVisible(false);
+                                    break;
+                            }
+
+                            faceDetector.startDetecting();
                             startAutoCapture();
                             break;
                         case POSE:
                             selectedPose = item;
                             modeItem3.setTextVisible(false);
-                            Toast.makeText(getApplicationContext(), "선택된 자세 : " + selectedPose.getItemName(), Toast.LENGTH_SHORT).show();
                             selected = true;
                             pager.setCurrentItem(2);
                             break;
                         default: break;
                     }
 
-                    selectedItemID = item.getItemID();
+                    selectedItemID = Integer.parseInt(item.getMode() + "" + item.getItemID());
+                    Log.i(TAG, "선택된 아이템 ID : " + selectedItemID);
                 }
                 break;
             case RESULT_CANCELED:
-                if (requestCode == emotionSelect && selectedItemID == -1) {
-                    faceDetector.stopDetector();
-                    selectedPose = null;
-                    modeItem1.setTextVisible(true);
+                if (requestCode == REQUEST_EMOTION_SELECT && selectedItemID == -1) {
+                    faceDetector.stopDetecting();
+                    stopAutoCapture();
+                    selectedEmotion = null;
                     modeItem1.setTextView("표정이 선택되지 않았습니다.", 0xFFEE0000);
+                    modeItem1.setTextVisible(true);
                 }
 
-                else if (requestCode == poseSelect && selectedItemID == -1) {
-                    faceDetector.stopDetector();
+                else if (requestCode == REQUEST_POSE_SELECT && selectedItemID == -1) {
+                    faceDetector.stopDetecting();
+                    stopAutoCapture();
                     selectedPose = null;
-                    modeItem3.setTextVisible(true);
                     modeItem3.setTextView("자세가 선택되지 않았습니다.", 0xFFEE0000);
+                    modeItem3.setTextVisible(true);
                 }
                 break;
             default: break;
