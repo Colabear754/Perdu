@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -14,7 +15,11 @@ import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetector;
 import com.google.firebase.ml.vision.face.FirebaseVisionFaceDetectorOptions;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 
 public class FaceDetector {
     private static final String TAG = "FaceDetector";
@@ -27,7 +32,7 @@ public class FaceDetector {
     private byte[] imageBuffer = null;
     private volatile boolean isStart = false;
 
-    private final byte[] lock = new byte[]{0};
+    private final byte[] detectLock = new byte[]{0};
 
     private FaceDetectThread detectThread = null;
 
@@ -35,16 +40,19 @@ public class FaceDetector {
     private FirebaseVisionImageMetadata metadata;
     private FirebaseVisionFaceDetector detector;
     private FirebaseVisionImage visionImage;
+    private FirebaseVisionFace detectedFace;
 
     public FaceDetector(Context context) {
         this.context = context;
         init();
     }
 
+    //////////////////////////////////////////////////
+    // 초기화
+    //////////////////////////////////////////////////
     private void init() {
         previewWidth = CameraSurfaceView.DEFAULT_PREVIEW_WIDTH;
         previewHeight = CameraSurfaceView.DEFAULT_PREVIEW_HEIGHT;
-        Log.i(TAG, "Width : " + previewWidth + ", Height : " + previewHeight);
         imageBuffer = new byte[previewWidth * previewHeight * 3 / 2];
         options = new FirebaseVisionFaceDetectorOptions.Builder()
                 .setPerformanceMode(FirebaseVisionFaceDetectorOptions.ACCURATE)
@@ -68,7 +76,7 @@ public class FaceDetector {
         overlay.setCameraInfo(previewWidth, previewHeight, CameraPreviewActivity.cameraFacing);
     }
 
-    public void startDetector() {
+    public void startDetecting() {
         isStart = true;
         if (detectThread == null) {
             detectThread = new FaceDetectThread("FaceDetectorThread");
@@ -76,7 +84,7 @@ public class FaceDetector {
         }
     }
 
-    public void stopDetector() {
+    public void stopDetecting() {
         isStart = false;
         overlay.clear();
         if (detectThread != null) {
@@ -90,14 +98,18 @@ public class FaceDetector {
         }
     }
 
+    public FirebaseVisionFace getDetectedFace() {
+        return detectedFace;
+    }
+
     //////////////////////////////////////////////////
     // 카메라 데이터 수신 및 처리
     //////////////////////////////////////////////////
     public void receiveFrameData(byte[] bytes) {
-        synchronized (lock) {
+        synchronized (detectLock) {
             if (data == null) {
                 data = bytes;
-                lock.notifyAll();
+                detectLock.notifyAll();
             }
         }
     }
@@ -111,21 +123,22 @@ public class FaceDetector {
         public void run() {
             super.run();
             while (true) {
-                synchronized (lock) {
+                synchronized (detectLock) {
                     if (!isStart) {
                         return;
                     }
                     if (data == null) {
                         try {
-                            lock.wait();
+                            detectLock.wait();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                             return;
                         }
+                    } else {
+                        System.arraycopy(data, 0, imageBuffer, 0, data.length);
+                        data = null;
+                        visionImage = FirebaseVisionImage.fromByteArray(imageBuffer, metadata);
                     }
-                    System.arraycopy(data, 0, imageBuffer, 0, data.length);
-                    data = null;
-                    visionImage = FirebaseVisionImage.fromByteArray(imageBuffer, metadata);
                 }
                 detector.detectInImage(visionImage).addOnSuccessListener(onSuccessListener).addOnFailureListener(onFailureListener);
             }
@@ -144,6 +157,7 @@ public class FaceDetector {
                 FaceGraphic faceGraphic = new FaceGraphic(overlay);
                 overlay.add(faceGraphic);
                 faceGraphic.updateFace(face, CameraPreviewActivity.cameraFacing);
+                detectedFace = face;
             }
         }
     };
