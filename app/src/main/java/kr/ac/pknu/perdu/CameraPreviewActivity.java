@@ -419,7 +419,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         Animation anim = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.gallery_scale);
         v.startAnimation(anim);
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setType(MediaStore.Images.Media.CONTENT_TYPE);
+        intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
         startActivity(intent);
     }
 
