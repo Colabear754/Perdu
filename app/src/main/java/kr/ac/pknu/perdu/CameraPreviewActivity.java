@@ -605,6 +605,9 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
         }
     }
 
+    //////////////////////////////////////////////
+    // 표정을 체크하여 참, 거짓을 반환
+    //////////////////////////////////////////////
     private boolean checkEmotion(FirebaseVisionFace face, int item) {
         switch (item) {
             case EMOTION_ITEM1:
