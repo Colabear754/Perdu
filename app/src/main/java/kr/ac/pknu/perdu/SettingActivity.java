@@ -51,10 +51,10 @@ public class SettingActivity extends AppCompatActivity {
         poseAdapter = new ItemAdapter();
 
         // 어댑터 샘플 코드
-        emotionAdapter.addItem(new ListItem("표정1", 101, R.drawable.emotion01, EMOTION));
-        emotionAdapter.addItem(new ListItem("표정2", 102, R.drawable.emotion02, EMOTION));
-        emotionAdapter.addItem(new ListItem("표정3", 103, R.drawable.emotion03, EMOTION));
-        emotionAdapter.addItem(new ListItem("표정4", 104, R.drawable.emotion04, EMOTION));
+        emotionAdapter.addItem(new ListItem("웃는 표정", 101, R.drawable.emotion01, EMOTION));
+        emotionAdapter.addItem(new ListItem("윙크", 102, R.drawable.emotion02, EMOTION));
+        emotionAdapter.addItem(new ListItem("놀란 표정", 103, R.drawable.emotion03, EMOTION));
+        emotionAdapter.addItem(new ListItem("메롱", 104, R.drawable.emotion04, EMOTION));
 
         poseAdapter.addItem(new ListItem("자세1", 101, R.drawable.pose01, POSE));
         poseAdapter.addItem(new ListItem("자세2", 102, R.drawable.pose02, POSE));

@@ -34,9 +34,6 @@ import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.pedro.library.AutoPermissions;
 import com.pedro.library.AutoPermissionsListener;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import kr.ac.pknu.perdu.adapter.AspectRatioSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.FlashSpinnerAdapter;
 import kr.ac.pknu.perdu.adapter.ModePagerAdapter;
@@ -61,7 +58,6 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
     private static final int POSE_ITEM2 = 200001102;
     private static final int POSE_ITEM3 = 200001103;
     private static final int POSE_ITEM4 = 200001104;
-
 
     private CameraSurfaceView cameraView;   // 카메라 미리보기 뷰
     private SurfaceView surfaceView;    // 미리보기를 표시하기 위한 서피스뷰
@@ -613,7 +609,7 @@ public class CameraPreviewActivity extends AppCompatActivity implements AutoPerm
             case EMOTION_ITEM1:
                 return face.getSmilingProbability() >= 0.85f;
             case EMOTION_ITEM2:
-                return (face.getLeftEyeOpenProbability() <= 0.2f && face.getRightEyeOpenProbability() > 0.5f) || (face.getRightEyeOpenProbability() <= 0.2f && face.getLeftEyeOpenProbability() > 0.5f);
+                return (face.getLeftEyeOpenProbability() <= 0.15f && face.getRightEyeOpenProbability() > 0.8f) || (face.getRightEyeOpenProbability() <= 0.15f && face.getLeftEyeOpenProbability() > 0.8f);
             default:
                 return false;
         }
